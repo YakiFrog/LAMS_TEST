@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabList, TabPanels, Tab, TabPanel, Button, Link as ChakraLink, Box } from '@chakra-ui/react';
+import { keyframes } from '@emotion/react';
 import Tab1Content from '../components/Tab1Content';
 import Tab2Content from '../components/Tab2Content';
 import Tab3Content from '../components/Tab3Content';
 
 export default function HomePage() {
   const scale = 98;
-  
+
+  const bounce = keyframes`
+  0% { transform: translateY(0) rotate(-20deg); }
+  50% { transform: translateY(-10px) rotate(-20deg); }
+  100% { transform: translateY(0) rotate(-20deg); }
+`;
+
+  const animation = `${bounce} 2s linear infinite`;
+
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
+    <div style={{ backgroundColor: '#aaaaaa', height: '100vh' }}>
     <Box 
       p={4}
       width={`${scale}vw`}
@@ -16,24 +32,55 @@ export default function HomePage() {
       maxH="100vh"
       margin="auto"
       border="1px solid #ccc" 
-      borderRadius="2xl"
+      borderRadius="3xl"
       position="fixed"
       top="50%"
       left="50%"
       transform="translate(-50%, -50%)"
       overflow="hidden"
+      bg= "white"
     >
-    <Tabs isFitted variant="enclosed" colorScheme="blue" size="lg">
-      <TabList>
-      <Tab>メイン</Tab>
-      <Tab>データ</Tab>
-      <Tab>管理</Tab>
+    <Tabs isFitted variant="enclosed" colorScheme="blue" size="md" bg="white">
+      <TabList bg="gray.100" borderRadius="full" p={2}>
+      <Tab 
+        fontWeight="semibold"
+        _selected={{ color: 'white', bg: 'blue.500' }}
+        px={5}
+        py={2}
+        mx={1}
+        borderRadius="full"
+        _focus={{ boxShadow: 'none' }}
+      >
+        メイン
+      </Tab>
+      <Tab
+        fontWeight="semibold"
+        _selected={{ color: 'white', bg: 'blue.500' }}
+        px={5}
+        py={2}
+        mx={1}
+        borderRadius="full"
+        _focus={{ boxShadow: 'none' }}
+      >
+        データ
+      </Tab>
+      <Tab
+        fontWeight="semibold"
+        _selected={{ color: 'white', bg: 'blue.500' }}
+        px={5}
+        py={2}
+        mx={1}
+        borderRadius="full"
+        _focus={{ boxShadow: 'none' }}
+      >
+        管理
+      </Tab>
       </TabList>
 
       <TabPanels 
       mt={3}
       border="1px solid #ccc"
-      borderRadius="2xl"
+      borderRadius="3xl"
       overflow="auto"
       height={`calc(${scale}vh - 10vh)`}
       >
@@ -48,6 +95,30 @@ export default function HomePage() {
       </TabPanel>
       </TabPanels>
     </Tabs>
+    <Box
+      position="fixed"
+      bottom="80px"
+      right="50px"
+      bg="red.500"
+      color="white"
+      borderRadius="3xl"
+      fontWeight="bold"
+      fontSize="3xl"
+      width="15vw"
+      textAlign="center"
+      zIndex={9999}
+      p={4}
+      pt={2}
+      pb={2}
+      transform="rotate(-20deg)"
+      letterSpacing="0.08em"
+      boxShadow="0 4px 6px rgb(171, 3, 3), inset 0 4px 6px rgba(250, 249, 157, 0.61)"
+      animation={animation}
+      fontFamily="'Yusei Magic', sans-serif"
+    >
+      試作版
     </Box>
+    </Box>
+    </div>
   );
 }

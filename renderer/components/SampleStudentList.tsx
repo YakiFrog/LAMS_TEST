@@ -17,6 +17,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
 
   const onClose = () => setIsOpen(false);
 
+  // 選択された学生情報を取得   
   const onOpen = (student: Student) => {
     setSelectedStudent(student);
     setIsOpen(true);
@@ -45,7 +46,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
       </Wrap>
 
       {/* StudentModal を追加 */}
-      <StudentModal isOpen={isOpen} onClose={onClose} student={selectedStudent} />
+      <StudentModal isOpen={isOpen} onClose={onClose} student={selectedStudent} /> 
     </>
   );
 };
