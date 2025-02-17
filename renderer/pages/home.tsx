@@ -1,41 +1,48 @@
-import React from 'react'
-import Head from 'next/head'
-import Image from 'next/image'
-import { Button, Link as ChakraLink } from '@chakra-ui/react'
-
-import { Container } from '../components/Container'
-import { DarkModeSwitch } from '../components/DarkModeSwitch'
-import { Footer } from '../components/Footer'
-import { Hero } from '../components/Hero'
+import React, { useState } from 'react';
+import { Tabs, TabList, TabPanels, Tab, TabPanel, Button, Link as ChakraLink, Box } from '@chakra-ui/react';
+import Tab1Content from '../components/Tab1Content';
+import Tab2Content from '../components/Tab2Content';
+import Tab3Content from '../components/Tab3Content';
 
 export default function HomePage() {
   return (
-    <React.Fragment>
-      <Head>
-        <title>Home - Nextron (with-chakra-ui)</title>
-      </Head>
-      <Container minHeight="100vh">
-        <DarkModeSwitch />
-        <Image
-          src="/images/logo.png"
-          alt="Logo image"
-          width={200}
-          height={200}
-        />
-        <Hero title={`⚡Electron⚡ + Next.js + Chakra UI = 🔥`} />
-        <Footer>
-          <Button
-            as={ChakraLink}
-            href="/next"
-            variant="solid"
-            colorScheme="teal"
-            rounded="button"
-            width="full"
-          >
-            Go to next page
-          </Button>
-        </Footer>
-      </Container>
-    </React.Fragment>
-  )
+    <Box 
+      p={4}
+      width="95%"
+      height="95%"
+      margin="auto"
+      border="1px solid #ccc" 
+      borderRadius="2xl"
+      position="fixed"
+      top="50%"
+      left="50%"
+      transform="translate(-50%, -50%)"
+    >
+    <Tabs isFitted variant="enclosed">
+      <TabList>
+        <Tab>メイン</Tab>
+        <Tab>データ</Tab>
+        <Tab>管理</Tab>
+      </TabList>
+
+      <TabPanels 
+        mt={2}
+        border="1px solid #ccc"
+        borderRadius="2xl"
+        overflow="auto"
+        height="87vh"
+      >
+        <TabPanel>
+          <Tab1Content />
+        </TabPanel>
+        <TabPanel>
+          <Tab2Content />
+        </TabPanel>
+        <TabPanel>
+          <Tab3Content />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
+    </Box>
+  );
 }
