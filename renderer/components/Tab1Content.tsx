@@ -6,9 +6,9 @@ const Tab1Content: React.FC = () => {
   // サンプル学生情報を定義（MainTabを参考に追加）
   const sampleStudents = {
     教員: [{ id: 'sample-teacher', name: '井上 雄紀' }],
-    M2: [{ id: 'sample-M2', name: 'サンプル学生 M2' }],
-    M1: [{ id: 'sample-M1', name: 'サンプル学生 M1' }],
-    B4: [{ id: 'sample-B4', name: 'サンプル学生 B4' }],
+    M2: Array.from({ length: 6 }, (_, i) => ({ id: `sample-M2-${i + 1}`, name: `サンプル学生 M2-${i + 1}` })),
+    M1: Array.from({ length: 6 }, (_, i) => ({ id: `sample-M1-${i + 1}`, name: `サンプル学生 M1-${i + 1}` })),
+    B4: Array.from({ length: 10 }, (_, i) => ({ id: `sample-B4-${i + 1}`, name: `サンプル学生 B4-${i + 1}` })),
   };
 
   return (
@@ -37,10 +37,6 @@ const Tab1Content: React.FC = () => {
         <Divider my={2} />
         <SampleStudentList students={sampleStudents.B4} />
       </Box>
-      {/* ダミーコンテンツ */}
-      {Array.from({ length: 20 }, (_, i) => (
-        <Text key={i}>ダミーテキスト {i + 1}</Text>
-      ))}
     </Box>
   );
 };
