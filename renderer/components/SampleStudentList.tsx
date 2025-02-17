@@ -16,7 +16,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
       {students.map(student => (
         <WrapItem key={student.id}>
           <Box borderWidth="2px" borderRadius="xl" p={2} pl={4} pr={4}>
-            <Text>{student.name}</Text>
+            <Text fontSize="xl" color="gray.700" fontWeight="light"
+            >{student.name}</Text>
           </Box>
         </WrapItem>
       ))}

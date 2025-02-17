@@ -12,29 +12,29 @@ const Tab1Content: React.FC = () => {
   };
 
   return (
-    <Box p={4}>
+    <Box p={6}>
       {/* 教員セクション */}
-      <Box mb={6}>
-        <Heading as="h2" size="lg">教員</Heading>
-        <Divider my={2} />
+      <Box mb={8}>
+        <Heading as="h2" size="xl" color="gray.700">教員</Heading>
+        <Divider my={3} borderColor="gray.300" />
         <SampleStudentList students={sampleStudents.教員} />
       </Box>
       {/* M2セクション */}
-      <Box mb={6}>
-        <Heading as="h2" size="lg">M2</Heading>
-        <Divider my={2} />
+      <Box mb={8}>
+        <Heading as="h2" size="xl" color="gray.700">M2</Heading>
+        <Divider my={3} borderColor="gray.300" />
         <SampleStudentList students={sampleStudents.M2} />
       </Box>
       {/* M1セクション */}
-      <Box mb={6}>
-        <Heading as="h2" size="lg">M1</Heading>
-        <Divider my={2} />
+      <Box mb={8}>
+        <Heading as="h2" size="xl" color="gray.700">M1</Heading>
+        <Divider my={3} borderColor="gray.300" />
         <SampleStudentList students={sampleStudents.M1} />
       </Box>
       {/* B4セクション */}
-      <Box mb={6}>
-        <Heading as="h2" size="lg">B4</Heading>
-        <Divider my={2} />
+      <Box mb={8}>
+        <Heading as="h2" size="xl" color="gray.700">B4</Heading>
+        <Divider my={3} borderColor="gray.300" />
         <SampleStudentList students={sampleStudents.B4} />
       </Box>
     </Box>
