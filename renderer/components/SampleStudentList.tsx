@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Wrap, WrapItem, Text } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { Box, Wrap, WrapItem, Text, Badge } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 
 interface Student {
@@ -14,6 +14,33 @@ interface Props {
 const SampleStudentList: React.FC<Props> = ({ students }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [attendanceStates, setAttendanceStates] = useState<{
+    [studentId: string]: {
+      isAttending: boolean;
+      attendanceTime: Date | null;
+      leavingTime: Date | null;
+    };
+  }>({});
+
+  useEffect(() => {
+    // ローカルストレージから出勤状況を読み込む
+    const storedAttendanceStates = localStorage.getItem('attendanceStates');
+    if (storedAttendanceStates) {
+      const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
+      // Date オブジェクトに変換
+      Object.keys(parsedAttendanceStates).forEach(studentId => {
+        const attendanceTime = parsedAttendanceStates[studentId].attendanceTime;
+        const leavingTime = parsedAttendanceStates[studentId].leavingTime;
+        if (attendanceTime) {
+          parsedAttendanceStates[studentId].attendanceTime = new Date(attendanceTime);
+        }
+        if (leavingTime) {
+          parsedAttendanceStates[studentId].leavingTime = new Date(leavingTime);
+        }
+      });
+      setAttendanceStates(parsedAttendanceStates);
+    }
+  }, []);
 
   const onClose = () => setIsOpen(false);
 
@@ -31,22 +58,64 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
             <Box
               borderWidth="2px"
               borderRadius="xl"
-              p={2}
-              pl={4}
-              pr={4}
+              py={3}
+              px={3}
+              mb={1}
               cursor="pointer"
               onClick={() => onOpen(student)}
+              position="relative"
+              borderColor={
+                attendanceStates[student.id]?.isAttending
+                  ? "green.400"
+                  : attendanceStates[student.id]?.leavingTime
+                  ? "red.400"
+                  : "gray.200"
+              }
             >
               <Text fontSize="xl" color="gray.700" fontWeight="light">
                 {student.name}
               </Text>
+              {/* ラベル */}
+                {attendanceStates[student.id]?.isAttending && (
+                <Badge
+                  colorScheme="green"
+                  position="absolute"
+                  bottom="-2"
+                  right="-2"
+                  fontSize="md"
+                  zIndex={2}
+                  borderRadius="full"
+                  px={2}
+                >
+                  出勤中
+                </Badge>
+                )}
+                {attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
+                <Badge
+                  colorScheme="red"
+                  position="absolute"
+                  bottom="-2"
+                  right="-2"
+                  fontSize="md"
+                  zIndex={2}
+                  borderRadius="full"
+                  px={2}
+                >
+                  退勤済
+                </Badge>
+                )}
             </Box>
           </WrapItem>
         ))}
       </Wrap>
 
-      {/* StudentModal を追加 */}
-      <StudentModal isOpen={isOpen} onClose={onClose} student={selectedStudent} /> 
+      <StudentModal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        student={selectedStudent} 
+        attendanceStates={attendanceStates}
+        setAttendanceStates={setAttendanceStates}
+      />
     </>
   );
 };

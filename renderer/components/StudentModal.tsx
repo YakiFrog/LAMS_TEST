@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -15,39 +15,23 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   student: { id: string; name: string } | null;
-}
-import { useState, useEffect } from 'react';
-
-const StudentModal: React.FC<Props> = ({ isOpen, onClose, student }) => {
-  // 学生ごとの出勤状況を管理するstate
-  const [attendanceStates, setAttendanceStates] = useState<{
+  attendanceStates: {
     [studentId: string]: {
-      isAttending: boolean;    // 出勤中かどうか
-      attendanceTime: Date | null; // 出勤時間
-      leavingTime: Date | null;    // 退勤時間
+      isAttending: boolean;
+      attendanceTime: Date | null;
+      leavingTime: Date | null;
     };
-  }>({});
+  };
+  setAttendanceStates: React.Dispatch<React.SetStateAction<{
+    [studentId: string]: {
+      isAttending: boolean;
+      attendanceTime: Date | null;
+      leavingTime: Date | null;
+    };
+  }>>;
+}
 
-  useEffect(() => {
-    // ローカルストレージから出勤状況を読み込む
-    const storedAttendanceStates = localStorage.getItem('attendanceStates');
-    if (storedAttendanceStates) {
-      const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
-      // attendanceTime と leavingTime を Date オブジェクトに変換
-      Object.keys(parsedAttendanceStates).forEach(studentId => {
-        const attendanceTime = parsedAttendanceStates[studentId].attendanceTime;
-        const leavingTime = parsedAttendanceStates[studentId].leavingTime;
-        if (attendanceTime) {
-          parsedAttendanceStates[studentId].attendanceTime = new Date(attendanceTime);
-        }
-        if (leavingTime) {
-          parsedAttendanceStates[studentId].leavingTime = new Date(leavingTime);
-        }
-      });
-      setAttendanceStates(parsedAttendanceStates);
-    }
-  }, []);
-
+const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceStates, setAttendanceStates }) => {
   // 出勤・退勤ボタンが押された際の処理
   const handleAttendance = () => {
     // student が存在しない場合は処理を中断
@@ -156,13 +140,13 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student }) => {
 
         <ModalFooter>
             <Button
-            colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "blue"}
-            onClick={handleAttendance}
-            borderRadius="2xl"
-            width="100%"
-            height="7vh"
-            fontSize={"2xl"}
-            fontWeight="black"
+              colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
+              onClick={handleAttendance}
+              borderRadius="2xl"
+              width="100%"
+              height="7vh"
+              fontSize={"2xl"}
+              fontWeight="black"
             >
             {/* ボタンの表示: student が存在し、かつ対応する attendanceState が出勤中の場合、"退勤" を表示。それ以外の場合は "出勤" を表示 */}
             {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
