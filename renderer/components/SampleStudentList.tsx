@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Wrap, WrapItem, Text } from '@chakra-ui/react';
+import StudentModal from './StudentModal';
 
 interface Student {
   id: string;
@@ -11,17 +12,41 @@ interface Props {
 }
 
 const SampleStudentList: React.FC<Props> = ({ students }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+  const onClose = () => setIsOpen(false);
+
+  const onOpen = (student: Student) => {
+    setSelectedStudent(student);
+    setIsOpen(true);
+  };
+
   return (
-    <Wrap spacing={2} mt={2}>
-      {students.map(student => (
-        <WrapItem key={student.id}>
-          <Box borderWidth="2px" borderRadius="xl" p={2} pl={4} pr={4}>
-            <Text fontSize="xl" color="gray.700" fontWeight="light"
-            >{student.name}</Text>
-          </Box>
-        </WrapItem>
-      ))}
-    </Wrap>
+    <>
+      <Wrap spacing={2} mt={2}>
+        {students.map(student => (
+          <WrapItem key={student.id}>
+            <Box
+              borderWidth="2px"
+              borderRadius="xl"
+              p={2}
+              pl={4}
+              pr={4}
+              cursor="pointer"
+              onClick={() => onOpen(student)}
+            >
+              <Text fontSize="xl" color="gray.700" fontWeight="light">
+                {student.name}
+              </Text>
+            </Box>
+          </WrapItem>
+        ))}
+      </Wrap>
+
+      {/* StudentModal を追加 */}
+      <StudentModal isOpen={isOpen} onClose={onClose} student={selectedStudent} />
+    </>
   );
 };
 
