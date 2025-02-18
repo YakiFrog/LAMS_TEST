@@ -59,7 +59,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               borderWidth="2px"
               borderRadius="xl"
               py={3}
-              px={3}
+              px={8}
               mb={1}
               cursor="pointer"
               onClick={() => onOpen(student)}
