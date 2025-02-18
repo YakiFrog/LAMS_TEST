@@ -147,10 +147,22 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />
-      <ModalContent width="50%" height="50%" borderRadius="2xl">
+      <ModalContent width="50%" height="50%" borderRadius="3xl">
         {/* ヘッダー: 学生名またはデフォルトのタイトルが表示されます */}
-        <ModalHeader fontSize={"2xl"} left={6} top={4} fontWeight={"bold"} justifyContent="center" display="flex" mt={2}>
-          {student ? student.name : "学生情報"} 
+        <ModalHeader
+          fontSize={"2xl"}
+          fontWeight={"bold"}
+          justifyContent="center"
+          textAlign="center"
+          display="flex"
+          flexDirection="column" // 追加: 縦方向に並べることでIDを改行表示
+          mt={2}
+          mb={0}
+        >
+            {student ? student.name : "学生情報"}
+            <Text fontSize={"sm"} fontWeight={"bold"} color={"gray.500"} mt={0}>
+              ID: {student?.id}
+            </Text>
         </ModalHeader>
         {/* モーダルを閉じるボタン */}
         <ModalCloseButton size="lg" right={6} top={4} border={"1px solid red"} borderRadius="xl" bg="red.500" _hover={{ bg: "red.600" }} color="white"/>
@@ -158,13 +170,13 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         {/* 出退勤時刻の表示エリア */}
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
           <Text fontSize={"xl"} fontWeight={"bold"} mt={2}>
-            出勤: <Text as="span" fontSize="3xl">{attendanceTimeStr ? attendanceTimeStr : "未登録"}</Text>
+            出勤: <Text as="span" fontSize="3xl" letterSpacing="wider">{attendanceTimeStr ? attendanceTimeStr : "未登録"}</Text>
           </Text>
           <Text fontSize={"xl"} fontWeight={"bold"} mt={2} ml={6}>
-            退勤: <Text as="span" fontSize="3xl">{leavingTimeStr ? leavingTimeStr : "未登録"}</Text>
+            退勤: <Text as="span" fontSize="3xl" letterSpacing="wider">{leavingTimeStr ? leavingTimeStr : "未登録"}</Text>
           </Text>
         </div>
-        <ModalBody border="1px solid #ccc" borderRadius="2xl" p={4} ml={6} mr={6} mt={4}>
+        <ModalBody border="1px solid #ccc" borderRadius="2xl" p={4} ml={6} mr={6} mt={2}>
           {student ? (
             <>
             <p>今週何曜日にきたかを視覚的に表示</p>
@@ -184,11 +196,12 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
           <Button
             colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
             onClick={handleAttendance}
-            borderRadius="2xl"
+            borderRadius="3xl"
             width="100%"
             height="7vh"
-            fontSize={"2xl"}
+            fontSize={"3xl"}
             fontWeight="black"
+            letterSpacing="wider"
           >
             {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
           </Button>

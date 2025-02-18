@@ -53,15 +53,16 @@ export default function HomePage() {
         setTabRefreshKeys(prev => ({ ...prev, [index]: prev[index] + 1 }));
       }}
     >
-      <TabList bg="gray.100" borderRadius="full" p={2}>
+      <TabList bg="gray.100" borderRadius="3xl" p={2}>
       <Tab 
         fontWeight="semibold"
         _selected={{ color: 'white', bg: '#131113' }}
         px={5}
         py={2}
         mx={1}
-        borderRadius="full"
+        borderRadius="3xl"
         _focus={{ boxShadow: 'none' }}
+        letterSpacing="wider"
       >
         メイン
       </Tab>
@@ -71,8 +72,9 @@ export default function HomePage() {
         px={5}
         py={2}
         mx={1}
-        borderRadius="full"
+        borderRadius="3xl"
         _focus={{ boxShadow: 'none' }}
+        letterSpacing="wider"
       >
         データ
       </Tab>
@@ -82,8 +84,9 @@ export default function HomePage() {
         px={5}
         py={2}
         mx={1}
-        borderRadius="full"
+        borderRadius="3xl"
         _focus={{ boxShadow: 'none' }}
+        letterSpacing="wider"
       >
         管理
       </Tab>

@@ -134,55 +134,66 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
         {students.map(student => (
           <WrapItem key={student.id}>
             <Box
-              borderWidth="2px"
-              borderRadius="xl"
+              borderWidth={
+              attendanceStates[student.id]?.isAttending
+                ? "3px"
+                : attendanceStates[student.id]?.leavingTime
+                ? "3px"
+                : "2px"
+              }
+              borderRadius="3xl"
               py={3}
               px={6}
-              mb={0}
+              mr={0.5}
+              minW="120px" // 最小幅を設定
+              minH="60px" // 最小高さを設定
               cursor="pointer"
               onClick={() => onOpen(student)}
               position="relative"
               // 出退勤状態に応じた枠線の色を設定：出勤中は緑、退勤済は赤、その他はグレー
               borderColor={
-                attendanceStates[student.id]?.isAttending
-                  ? "green.400"
-                  : attendanceStates[student.id]?.leavingTime
-                  ? "red.400"
-                  : "gray.200"
+              attendanceStates[student.id]?.isAttending
+                ? "green.400"
+                : attendanceStates[student.id]?.leavingTime
+                ? "red.400"
+                : "gray.200"
               }
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
             >
-              <Text fontSize="2xl" color="gray.700" fontWeight="light">
-                {student.name}
+              <Text fontSize="2xl" color="#131113" fontWeight="light" noOfLines={1}>
+              {student.name}
               </Text>
               {/* 出勤中の場合のバッジ表示 */}
               {attendanceStates[student.id]?.isAttending && (
-                <Badge
-                  colorScheme="green"
-                  position="absolute"
-                  bottom="-2"
-                  right="-2"
-                  fontSize="md"
-                  zIndex={2}
-                  borderRadius="full"
-                  px={2}
-                >
-                  出勤中
-                </Badge>
+              <Badge
+                colorScheme="green"
+                position="absolute"
+                bottom="-2"
+                right="-2"
+                fontSize="md"
+                zIndex={2}
+                borderRadius="full"
+                px={2}
+              >
+                出勤中
+              </Badge>
               )}
               {/* 退勤済の場合のバッジ表示（出勤中ではない場合） */}
               {attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
-                <Badge
-                  colorScheme="red"
-                  position="absolute"
-                  bottom="-2"
-                  right="-2"
-                  fontSize="md"
-                  zIndex={2}
-                  borderRadius="full"
-                  px={2}
-                >
-                  退勤済
-                </Badge>
+              <Badge
+                colorScheme="red"
+                position="absolute"
+                bottom="-2"
+                right="-2"
+                fontSize="md"
+                zIndex={2}
+                borderRadius="full"
+                px={2}
+              >
+                退勤済
+              </Badge>
               )}
             </Box>
           </WrapItem>

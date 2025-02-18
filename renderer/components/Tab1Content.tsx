@@ -18,6 +18,13 @@ const bounce = keyframes`
   100% { transform: translateX(-50%) translateY(0); }
 `;
 
+// 新規アニメーション定義: 天気アイコンの浮遊アニメーション
+const float = keyframes`
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+`;
+
 const Tab1Content: React.FC = () => {
   // 状態管理
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -205,8 +212,10 @@ const Tab1Content: React.FC = () => {
         display="flex"
         alignItems="center"
         justifyContent="center"
+        width="42vw" // 幅をコンテンツに合わせて自動調整
+        height="auto" // 高さをコンテンツに合わせて自動調整
       >
-        <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2}>
+        <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2} letterSpacing="wider">
           {/* 日付と時刻の表示 */}
           {isMounted && (
             <>
@@ -232,7 +241,10 @@ const Tab1Content: React.FC = () => {
             color="white"
             ml={2}
             userSelect="none"
-            style={{ filter: 'url(#outline)' }}
+            css={{
+              filter: 'url(#outline)',
+              animation: `${float} 5s ease-in-out infinite`,
+            }}
           >
             {weatherIcon}
           </Box>
@@ -241,10 +253,24 @@ const Tab1Content: React.FC = () => {
 
       {/* 学生情報を学年別に表示 */}
       {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
-        <Box key={grade} mb={8} userSelect="none">
-          <Heading as="h2" size="xl" color="#131113">{grade}</Heading>
-          <Divider my={3} borderColor="gray.300" />
-          <SampleStudentList students={gradeStudents} />
+        <Box key={grade} mb={10} userSelect="none" position="relative"
+          borderWidth="5px"
+          borderColor="#131113"
+          borderRadius="3xl"
+          px={6}
+          pt={3}
+          pb={1}
+          mt={1}
+        >
+            <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
+            width="11vw" px={0} position="absolute" top={0} transform="translate(0%, -50%)"
+            textAlign="center" userSelect="none" letterSpacing="wider"
+            >
+              {grade}
+            </Heading>
+            <Box mt={7} mb={3}>
+              <SampleStudentList students={gradeStudents}/>
+            </Box>
         </Box>
       ))}
     </Box>
