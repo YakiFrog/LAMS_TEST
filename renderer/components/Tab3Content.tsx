@@ -621,8 +621,6 @@ const Tab3Content: React.FC = () => {
                             justifyContent="space-between"
                             alignItems="center"
                             bg={snapshot.isDragging ? "blue.50" : "white"}
-                            boxShadow={snapshot.isDragging ? "lg" : "sm"}
-                            transform={snapshot.isDragging ? "scale(1.02)" : "none"}
                             transition="all 0.2s"
                             _hover={{ bg: "gray.50" }}
                             cursor="grab"

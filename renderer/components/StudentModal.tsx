@@ -148,7 +148,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         <ModalBody border="1px solid #ccc" borderRadius="2xl" p={4} ml={6} mr={6} mt={4}>
           {student ? (
             <>
-              <Text>Name: {student.name}</Text>
+              {/* <Text>Name: {student.name}</Text> */}
               <Text>ID: {student.id}</Text>
             </>
           ) : (

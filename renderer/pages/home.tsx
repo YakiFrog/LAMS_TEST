@@ -5,6 +5,8 @@ import Tab1Content from '../components/Tab1Content';
 import Tab2Content from '../components/Tab2Content';
 import Tab3Content from '../components/Tab3Content';
 
+const version = 'v0.3.3';
+
 export default function HomePage() {
   const scale = 98;
 
@@ -23,7 +25,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div style={{ backgroundColor: '#aaaaaa', height: '100vh' }}>
+    <div style={{ backgroundColor: '#131113', height: '100vh' }}>
     <Box 
       p={4}
       width={`${scale}vw`}
@@ -124,7 +126,7 @@ export default function HomePage() {
       fontFamily="sans-serif"
       px={2}
       >
-        v0.3.0
+        {version}
       </Box>
     </Box>
     </Box>
