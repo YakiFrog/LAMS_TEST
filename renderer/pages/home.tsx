@@ -52,12 +52,10 @@ export default function HomePage() {
         setTabRefreshKeys(prev => ({ ...prev, [index]: prev[index] + 1 }));
       }}
     >
-      <TabList bg="gray.100" borderRadius="3xl" p={2}>
+      <TabList bg="gray.200" borderRadius="3xl" p={2} mt={0}>
       <Tab 
         fontWeight="semibold"
         _selected={{ color: 'white', bg: '#131113' }}
-        px={5}
-        py={2}
         mx={1}
         borderRadius="3xl"
         _focus={{ boxShadow: 'none' }}
@@ -68,8 +66,6 @@ export default function HomePage() {
       <Tab
         fontWeight="semibold"
         _selected={{ color: 'white', bg: '#131113' }}
-        px={5}
-        py={2}
         mx={1}
         borderRadius="3xl"
         _focus={{ boxShadow: 'none' }}
@@ -80,8 +76,6 @@ export default function HomePage() {
       <Tab
         fontWeight="semibold"
         _selected={{ color: 'white', bg: '#131113' }}
-        px={5}
-        py={2}
         mx={1}
         borderRadius="3xl"
         _focus={{ boxShadow: 'none' }}
@@ -92,11 +86,12 @@ export default function HomePage() {
       </TabList>
 
       <TabPanels 
-      mt={3}
-      border="1px solid #ccc"
-      borderRadius="3xl"
-      overflow="auto"
-      height={`calc(${scale}vh - 10vh)`}
+        mt={3}
+        border="1px solid #ccc"
+        borderColor="gray.300"
+        borderRadius="3xl"
+        overflow="auto"
+        height={`calc(${scale}vh - 10vh)`}
       >
       <TabPanel>
         <Tab1Content key={tabRefreshKeys[0]} />

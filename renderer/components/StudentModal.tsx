@@ -146,7 +146,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
-      <ModalOverlay />
+      <ModalOverlay/>
       <ModalContent width="50%" height="50%" borderRadius="3xl">
         {/* ヘッダー: 学生名またはデフォルトのタイトルが表示されます */}
         <ModalHeader
