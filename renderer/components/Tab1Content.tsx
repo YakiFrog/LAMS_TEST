@@ -4,12 +4,14 @@ import { keyframes } from '@emotion/react';
 import SampleStudentList from './SampleStudentList';
 import { WiDaySunny, WiCloudy, WiRain, WiThunderstorm, WiSnow } from 'react-icons/wi';
 
+// 型定義: 学生情報
 interface Student {
   id: string;
   name: string;
   grade: '教員' | 'M2' | 'M1' | 'B4';
 }
 
+// アニメーション定義: バウンスエフェクト
 const bounce = keyframes`
   0% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(-15px); }
@@ -17,18 +19,20 @@ const bounce = keyframes`
 `;
 
 const Tab1Content: React.FC = () => {
+  // 状態管理
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMounted, setIsMounted] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [isBouncing, setIsBouncing] = useState(false);
   const [weatherIcon, setWeatherIcon] = useState<React.ReactNode | null>(null);
 
-  // Set mounted state
+  // useEffect 1: コンポーネントの初回マウント時のみ実行
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Update the time every second
+  // useEffect 2: 初回マウント後に開始し、1秒ごとに時計を更新
+  // コンポーネントのアンマウント時にクリーンアップ
   useEffect(() => {
     if (!isMounted) return;
     
@@ -38,7 +42,8 @@ const Tab1Content: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [isMounted]);
 
-  // Load students from localStorage
+  // useEffect 3: 初回マウント時のみ実行
+  // localStorageから保存済みの学生情報を読み込む
   useEffect(() => {
     const storedStudents = localStorage.getItem('students');
     if (storedStudents) {
@@ -46,7 +51,7 @@ const Tab1Content: React.FC = () => {
     }
   }, []);
 
-  // Group students by grade
+  // 学年ごとに学生をグループ化
   const studentsByGrade = {
     教員: students.filter(s => s.grade === '教員'),
     M2: students.filter(s => s.grade === 'M2'),
@@ -54,18 +59,23 @@ const Tab1Content: React.FC = () => {
     B4: students.filter(s => s.grade === 'B4'),
   };
 
+  // 時計クリック時の処理: バウンスエフェクトとページリロード
   const handleClockClick = () => {
+    // バウンス状態を有効化
     setIsBouncing(true);
+    // ページリロード
     window.location.reload();
 
-    // Reset bouncing state after a short delay
+    // すぐにバウンス終了を設定
     setTimeout(() => {
       setIsBouncing(false);
-    }, 200); // Adjust the duration as needed
+    }, 200); // 適宜調整
   };
 
+  // OpenWeatherMapAPIから天気情報を取得し、localStorageに保存
   const getWeatherIcon = async () => {
     try {
+      // 保存済みの天気情報を取得
       const savedWeather = localStorage.getItem('weatherType');
       const savedTime = localStorage.getItem('weatherTimestamp');
 
@@ -83,6 +93,7 @@ const Tab1Content: React.FC = () => {
 
         if (timeDiff < 30 * 60 * 1000) {
           console.log('ローカルストレージのデータを使用します');
+          // 保存済みの天気データに応じたアイコンを設定
           switch (savedWeather) {
             case 'Clear':
               setWeatherIcon(<WiDaySunny />);
@@ -107,6 +118,7 @@ const Tab1Content: React.FC = () => {
         console.log('保存された天気データがないため、新しいデータを取得します');
       }
 
+      // APIから最新の天気情報を取得
       const apiKey = 'b3c349ce219ca5db2d21213b3e403879';
       const city = 'Osaka';
       const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
@@ -114,6 +126,7 @@ const Tab1Content: React.FC = () => {
       const data = await response.json();
       const weather = data.weather[0].main;
 
+      // 取得した天気情報に応じたアイコンを設定
       switch (weather) {
         case 'Clear':
           setWeatherIcon(<WiDaySunny />);
@@ -135,6 +148,7 @@ const Tab1Content: React.FC = () => {
           return;
       }
 
+      // 新しい天気データをlocalStorageに保存
       localStorage.setItem('weatherType', weather);
       localStorage.setItem('weatherTimestamp', Date.now().toString());
 
@@ -144,14 +158,18 @@ const Tab1Content: React.FC = () => {
     }
   };
 
+  // useEffect 4: 初回マウント時に実行し、その後30分ごとに更新
+  // 天気情報の取得と定期更新
+  // コンポーネントのアンマウント時にクリーンアップ
   useEffect(() => {
     getWeatherIcon();
-    const intervalId = setInterval(getWeatherIcon, 30 * 60 * 1000);
-    return () => clearInterval(intervalId);
+    const intervalId = setInterval(getWeatherIcon, 30 * 60 * 1000); // setIntervalで30分ごとに更新
+    return () => clearInterval(intervalId); // メモリリーク防止
   }, []);
 
   return (
     <Box p={6}>
+      {/* SVGフィルター定義: アイコンに影効果 */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
           <filter id="outline">
@@ -167,6 +185,7 @@ const Tab1Content: React.FC = () => {
         </defs>
       </svg>
 
+      {/* 現在時刻と天気アイコンを表示するボックス */}
       <Box
         position="absolute"
         top="9%"
@@ -188,6 +207,7 @@ const Tab1Content: React.FC = () => {
         justifyContent="center"
       >
         <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2}>
+          {/* 日付と時刻の表示 */}
           {isMounted && (
             <>
               {currentTime.toLocaleDateString('ja-JP', {
@@ -201,6 +221,7 @@ const Tab1Content: React.FC = () => {
             </>
           )}
         </Text>
+        {/* 天気アイコンが設定されていれば表示 */}
         {weatherIcon && (
           <Box
             position="absolute"
@@ -218,6 +239,7 @@ const Tab1Content: React.FC = () => {
         )}
       </Box>
 
+      {/* 学生情報を学年別に表示 */}
       {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
         <Box key={grade} mb={8} userSelect="none">
           <Heading as="h2" size="xl" color="gray.700">{grade}</Heading>

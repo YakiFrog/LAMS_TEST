@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 const Tab2Content: React.FC = () => {
-  const [attendanceStatus, setAttendanceStatus] = useState<any>(null);
   const [savedAttendanceStates, setSavedAttendanceStates] = useState<any>(null);
 
   // ヘルパー関数：日付の時刻部分をリセット
@@ -18,18 +17,6 @@ const Tab2Content: React.FC = () => {
   };
 
   useEffect(() => {
-    // attendanceStatusの取得
-    const status = localStorage.getItem('attendanceStatus');
-    if (status) {
-      try {
-        setAttendanceStatus(JSON.parse(status));
-      } catch {
-        setAttendanceStatus(status);
-      }
-    } else {
-      setAttendanceStatus('未設定');
-    }
-
     // attendanceStatesの初期化処理
     const storedAttendanceStates = localStorage.getItem('attendanceStates');
     if (storedAttendanceStates) {
@@ -64,14 +51,13 @@ const Tab2Content: React.FC = () => {
 
       setSavedAttendanceStates(parsedAttendanceStates);
     } else {
-      setSavedAttendanceStates('未設定');
+      setSavedAttendanceStates('No data');
     }
   }, []);
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', color: '#000' }}>
       {/* JSON形式の場合は整形して表示 */}
-      <pre>{typeof attendanceStatus === 'object' ? JSON.stringify(attendanceStatus, null, 2) : attendanceStatus}</pre>
       <h2>保存されている出勤状況</h2>
       <pre>
         {typeof savedAttendanceStates === 'object'

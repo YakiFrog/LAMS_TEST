@@ -46,7 +46,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
     // 学生情報が無ければ処理を中断
     if (!student) return;
 
-    const now = getJapanTime();          // 現在時刻をJSTで取得
+    let now = getJapanTime();          // 現在時刻をJSTで取得
     const studentId = student.id;      // 対象学生のIDを取得
 
     // テストで日にちを-1日する
@@ -88,6 +88,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
       localStorage.setItem('attendanceStates', JSON.stringify(newState));
       return newState;
     });
+    onClose(); // モーダルを閉じる
   };
 
   // --- 学生の出退勤状態取得用関数 ---

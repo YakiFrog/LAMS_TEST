@@ -25,46 +25,54 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
   }>({});
 
   useEffect(() => {
-    // 出勤状況の初期化処理：ローカルストレージからデータを読み込み、日付が今日でない場合はリセットする
-    const storedAttendanceStates = localStorage.getItem('attendanceStates');
-    console.log("attendanceStates", storedAttendanceStates);
-    if (storedAttendanceStates) {
-      const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
+    const loadAttendanceStates = () => {
+      // 出勤状況の初期化処理：ローカルストレージからデータを読み込み、日付が今日でない場合はリセットする
+      const storedAttendanceStates = localStorage.getItem('attendanceStates');
+      console.log("attendanceStates", storedAttendanceStates);
+      if (storedAttendanceStates) {
+        const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
 
-      // 今日の日付を取得（時刻情報をリセット）
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+        // 今日の日付を取得（時刻情報をリセット）
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-      // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はデータを削除する
-      Object.keys(parsedAttendanceStates).forEach(studentId => {
-        const attendanceState = parsedAttendanceStates[studentId];
-        if (attendanceState) {
-          if (attendanceState.attendanceTime) {
-            const attendanceDate = new Date(attendanceState.attendanceTime);
-            attendanceDate.setHours(0, 0, 0, 0);
-            // 出勤日時が今日でなければ削除
-            if (attendanceDate.getTime() !== today.getTime()) {
-              delete parsedAttendanceStates[studentId];
-              return;
+        // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はデータを削除する
+        Object.keys(parsedAttendanceStates).forEach(studentId => {
+          const attendanceState = parsedAttendanceStates[studentId];
+          if (attendanceState) {
+            if (attendanceState.attendanceTime) {
+              const attendanceDate = new Date(attendanceState.attendanceTime);
+              attendanceDate.setHours(0, 0, 0, 0);
+              // 出勤日時が今日でなければ削除
+              if (attendanceDate.getTime() !== today.getTime()) {
+                delete parsedAttendanceStates[studentId];
+                return;
+              }
+              attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
             }
-            attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
-          }
 
-          if (attendanceState.leavingTime) {
-            const leavingDate = new Date(attendanceState.leavingTime);
-            leavingDate.setHours(0, 0, 0, 0);
-            // 退勤日時が今日でなければ削除
-            if (leavingDate.getTime() !== today.getTime()) {
-              delete parsedAttendanceStates[studentId];
-              return;
+            if (attendanceState.leavingTime) {
+              const leavingDate = new Date(attendanceState.leavingTime);
+              leavingDate.setHours(0, 0, 0, 0);
+              // 退勤日時が今日でなければ削除
+              if (leavingDate.getTime() !== today.getTime()) {
+                delete parsedAttendanceStates[studentId];
+                return;
+              }
+              attendanceState.leavingTime = new Date(attendanceState.leavingTime);
             }
-            attendanceState.leavingTime = new Date(attendanceState.leavingTime);
           }
-        }
-      });
+        });
 
-      setAttendanceStates(parsedAttendanceStates);
-    }
+        setAttendanceStates(parsedAttendanceStates);
+      }
+    };
+    // 初回ロード時に実行
+    loadAttendanceStates();
+    // 5分ごとに実行
+    const intervalId = setInterval(loadAttendanceStates, 5 * 60 * 1000);
+    // クリーンアップ関数：コンポーネントがアンマウントされたときにsetIntervalをクリアする
+    return () => clearInterval(intervalId);
   }, []);
 
   const onClose = () => {
