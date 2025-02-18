@@ -37,6 +37,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        let updated = false; // 更新フラグ
+
         // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はデータを削除する
         Object.keys(parsedAttendanceStates).forEach(studentId => {
           const attendanceState = parsedAttendanceStates[studentId];
@@ -47,6 +49,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               // 出勤日時が今日でなければ削除
               if (attendanceDate.getTime() !== today.getTime()) {
                 delete parsedAttendanceStates[studentId];
+                updated = true;
                 return;
               }
               attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
@@ -58,6 +61,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               // 退勤日時が今日でなければ削除
               if (leavingDate.getTime() !== today.getTime()) {
                 delete parsedAttendanceStates[studentId];
+                updated = true;
                 return;
               }
               attendanceState.leavingTime = new Date(attendanceState.leavingTime);
@@ -87,7 +91,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
       if (now >= threshold) {
         setAttendanceStates(prevStates => {
           const newStates = { ...prevStates };
-          let updated = false;
+          let updated = false; // 更新フラグ
           Object.keys(newStates).forEach(studentId => {
             const state = newStates[studentId];
             if (state && state.isAttending) {
@@ -101,8 +105,9 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               updated = true;
             }
           });
-          if (updated) {
+          if (updated) { // 更新があった場合のみローカルストレージに保存
             localStorage.setItem('attendanceStates', JSON.stringify(newStates));
+            window.location.reload(); // ページリロード
           }
           return newStates;
         });
