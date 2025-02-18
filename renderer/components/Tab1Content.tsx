@@ -10,9 +10,9 @@ interface Student {
 }
 
 const bounce = keyframes`
-  0% { transform: translateY(0); }
-  50% { transform: translateY(10px); }
-  100% { transform: translateY(0); }
+  0% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-15px); }
+  100% { transform: translateX(-50%) translateY(0); }
 `;
 
 const Tab1Content: React.FC = () => {
@@ -79,10 +79,10 @@ const Tab1Content: React.FC = () => {
         onClick={handleClockClick}
         cursor="pointer"
         transition="transform 0.1s ease-in-out"
-        animation={isBouncing ? `${bounce} 0.3s ease-out` : 'none'}
+        animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
         transformOrigin="bottom"
       >
-        <Text fontSize="3xl" fontWeight="bold" color="white">
+        <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none">
           {isMounted && (
             <>
               {currentTime.toLocaleDateString('ja-JP', {
@@ -100,7 +100,7 @@ const Tab1Content: React.FC = () => {
 
       {/* Student sections */}
       {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
-        <Box key={grade} mb={8}>
+        <Box key={grade} mb={8} userSelect="none">
           <Heading as="h2" size="xl" color="gray.700">{grade}</Heading>
           <Divider my={3} borderColor="gray.300" />
           <SampleStudentList students={gradeStudents} />
