@@ -97,19 +97,18 @@ export default function HomePage() {
     </Tabs>
     <Box
       position="fixed"
-      bottom="80px"
-      right="50px"
+      bottom="7%"
+      right="5%"
       bg="red.500"
       color="white"
       borderRadius="3xl"
       fontWeight="bold"
       fontSize="3xl"
-      width="15vw"
+      width="auto"
       textAlign="center"
       zIndex={9999}
-      p={4}
-      pt={2}
-      pb={2}
+      px={4}
+      py={2}
       transform="rotate(-20deg)"
       letterSpacing="0.08em"
       boxShadow="0 4px 6px rgb(171, 3, 3), inset 0 4px 6px rgba(250, 249, 157, 0.61)"
@@ -117,6 +116,16 @@ export default function HomePage() {
       fontFamily="'Yusei Magic', sans-serif"
     >
       試作版
+      <Box
+      fontSize="md"
+      fontWeight="normal"
+      mt={0}
+      letterSpacing="normal"
+      fontFamily="sans-serif"
+      px={2}
+      >
+        v0.3.0
+      </Box>
     </Box>
     </Box>
     </div>

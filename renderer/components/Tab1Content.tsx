@@ -54,7 +54,7 @@ const Tab1Content: React.FC = () => {
 
   const handleClockClick = () => {
     setIsBouncing(true);
-    // window.location.reload();
+    window.location.reload();
 
     // Reset bouncing state after a short delay
     setTimeout(() => {
