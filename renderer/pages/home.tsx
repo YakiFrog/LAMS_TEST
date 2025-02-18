@@ -5,7 +5,7 @@ import Tab1Content from '../components/Tab1Content';
 import Tab2Content from '../components/Tab2Content';
 import Tab3Content from '../components/Tab3Content';
 
-const version = 'v0.3.3';
+const version = 'v0.3.4';
 
 export default function HomePage() {
   const scale = 98;
