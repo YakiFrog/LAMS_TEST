@@ -21,6 +21,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
       isAttending: boolean;
       attendanceTime: Date | null;
       leavingTime: Date | null;
+      totalStayTime: number; // 追加: 累積滞在時間
     };
   }>({});
 
@@ -61,6 +62,10 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               }
               attendanceState.leavingTime = new Date(attendanceState.leavingTime);
             }
+            // totalStayTime が存在しない場合は初期化
+            if (attendanceState.totalStayTime === undefined) {
+              attendanceState.totalStayTime = 0;
+            }
           }
         });
 
@@ -69,9 +74,41 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
     };
     // 初回ロード時に実行
     loadAttendanceStates();
-    // 5分ごとに実行
-    const intervalId = setInterval(loadAttendanceStates, 5 * 60 * 1000);
+    const intervalId = setInterval(loadAttendanceStates, 30 * 60 * 1000); // 30分ごとに実行
     // クリーンアップ関数：コンポーネントがアンマウントされたときにsetIntervalをクリアする
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // 22:30を超えたときに出勤中の学生を22:30時点で自動退勤に更新するuseEffect
+  useEffect(() => {
+    const checkLateAttendance = () => {
+      const now = new Date();
+      const threshold = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 30, 0);
+      if (now >= threshold) {
+        setAttendanceStates(prevStates => {
+          const newStates = { ...prevStates };
+          let updated = false;
+          Object.keys(newStates).forEach(studentId => {
+            const state = newStates[studentId];
+            if (state && state.isAttending) {
+              const attendanceTime = state.attendanceTime;
+              if (attendanceTime) { // 出勤時刻が存在する場合、滞在時間を計算
+                const duration = Math.floor((threshold.getTime() - new Date(attendanceTime).getTime()) / 1000);
+                state.totalStayTime += duration;
+              }
+              state.isAttending = false;
+              state.leavingTime = threshold; // 22:30時点を退勤時刻とする
+              updated = true;
+            }
+          });
+          if (updated) {
+            localStorage.setItem('attendanceStates', JSON.stringify(newStates));
+          }
+          return newStates;
+        });
+      }
+    };
+    const intervalId = setInterval(checkLateAttendance, 10 * 60 * 1000); // 10分ごとに実行
     return () => clearInterval(intervalId);
   }, []);
 

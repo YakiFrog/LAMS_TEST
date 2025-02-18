@@ -192,7 +192,7 @@ const Tab1Content: React.FC = () => {
         left="50%"
         transform="translateX(-50%)"
         zIndex={1000}
-        bg="black"
+        bg="#131113"
         py={3}
         px={10}
         borderRadius="full"
@@ -242,7 +242,7 @@ const Tab1Content: React.FC = () => {
       {/* 学生情報を学年別に表示 */}
       {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
         <Box key={grade} mb={8} userSelect="none">
-          <Heading as="h2" size="xl" color="gray.700">{grade}</Heading>
+          <Heading as="h2" size="xl" color="#131113">{grade}</Heading>
           <Divider my={3} borderColor="gray.300" />
           <SampleStudentList students={gradeStudents} />
         </Box>

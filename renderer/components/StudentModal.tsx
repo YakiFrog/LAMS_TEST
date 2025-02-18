@@ -22,6 +22,7 @@ interface Props {
       isAttending: boolean;
       attendanceTime: Date | null;
       leavingTime: Date | null;
+      totalStayTime: number; // 追加: 累積滞在時間（秒単位）
     };
   };
   setAttendanceStates: React.Dispatch<React.SetStateAction<{
@@ -29,6 +30,7 @@ interface Props {
       isAttending: boolean;
       attendanceTime: Date | null;
       leavingTime: Date | null;
+      totalStayTime: number; // 追加: 累積滞在時間
     };
   }>>;
 }
@@ -59,6 +61,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         isAttending: false,
         attendanceTime: null,
         leavingTime: null,
+        totalStayTime: 0,
       };
       let updatedState;
       if (!studentState.isAttending) {
@@ -73,11 +76,18 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
       } else {
         // 退勤の場合: 出勤状態を解除し、現在時刻を退勤時刻に設定
         updatedState = {
-          ...studentState,
+          ...studentState, // 既存情報をコピー
           isAttending: false,
           leavingTime: now,
         };
         console.log(`Student ${studentId} 退勤:`, now);
+        // 滞在時間を計算（秒単位）し、累積
+        const attendanceTime = studentState.attendanceTime ? studentState.attendanceTime.getTime() : now.getTime();
+        const stayTime = Math.floor((now.getTime() - attendanceTime) / 1000);
+        updatedState = {
+          ...updatedState, 
+          totalStayTime: studentState.totalStayTime + stayTime
+        };
       }
       const newState = {
         ...prevStates,
@@ -95,31 +105,41 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   // 学生IDに応じた状態情報が存在するかをチェックし、なければ初期状態を返します。
   const getAttendanceState = (studentId: string | undefined | null) => {
     if (!studentId) {
-      return { isAttending: false, attendanceTime: null, leavingTime: null };
+      return { isAttending: false, attendanceTime: null, leavingTime: null, totalStayTime: 0 };
     }
     return attendanceStates[studentId] || {
       isAttending: false,
       attendanceTime: null,
       leavingTime: null,
+      totalStayTime: 0,
     };
   };
 
   // 表示用に出勤・退勤時刻を文字列に変換して管理するstate
   const [attendanceTimeStr, setAttendanceTimeStr] = useState<string | null>(null);
   const [leavingTimeStr, setLeavingTimeStr] = useState<string | null>(null);
+  const [totalStayTimeStr, setTotalStayTimeStr] = useState<string | null>(null);
 
   // --- 出退勤状態または選択学生が変更されたときの副作用 ---
   // 学生情報または出退勤状態が更新されると、表示用の時刻文字列を更新します。
   useEffect(() => {
     if (student) {
-      const attendanceTime = getAttendanceState(student.id).attendanceTime;
-      const leavingTime = getAttendanceState(student.id).leavingTime;
+      const state = getAttendanceState(student.id);
+      const attendanceTime = state.attendanceTime;
+      const leavingTime = state.leavingTime;
+      const totalStayTime = state.totalStayTime;
       // JST表示に変更
       setAttendanceTimeStr(
         attendanceTime ? attendanceTime.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo' }) : null
       );
       setLeavingTimeStr(
         leavingTime ? leavingTime.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo' }) : null
+      );
+      // 時間と分で表示（秒→時間換算）
+      setTotalStayTimeStr(
+        totalStayTime
+          ? `${Math.floor(totalStayTime / 3600)}時間 ${Math.floor((totalStayTime % 3600) / 60)}分`
+          : null
       );
     }
   }, [student, attendanceStates]);
@@ -129,8 +149,8 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
       <ModalOverlay />
       <ModalContent width="50%" height="50%" borderRadius="2xl">
         {/* ヘッダー: 学生名またはデフォルトのタイトルが表示されます */}
-        <ModalHeader fontSize={"xl"} left={6} top={4} fontWeight={"bold"} justifyContent="center" display="flex">
-          {student ? student.name : "学生情報"}
+        <ModalHeader fontSize={"2xl"} left={6} top={4} fontWeight={"bold"} justifyContent="center" display="flex" mt={2}>
+          {student ? student.name : "学生情報"} 
         </ModalHeader>
         {/* モーダルを閉じるボタン */}
         <ModalCloseButton size="lg" right={6} top={4} border={"1px solid red"} borderRadius="xl" bg="red.500" _hover={{ bg: "red.600" }} color="white"/>
@@ -144,18 +164,21 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             退勤: <Text as="span" fontSize="3xl">{leavingTimeStr ? leavingTimeStr : "未登録"}</Text>
           </Text>
         </div>
-
         <ModalBody border="1px solid #ccc" borderRadius="2xl" p={4} ml={6} mr={6} mt={4}>
           {student ? (
             <>
-              {/* <Text>Name: {student.name}</Text> */}
-              <Text>ID: {student.id}</Text>
+            <p>今週何曜日にきたかを視覚的に表示</p>
+            <p>週あたりの出勤日数・滞在時間を表示</p>
+            <p>月あたりの出勤日数・滞在時間を表示</p>
+            <p>年あたりの出勤日数・滞在時間を表示</p>
             </>
           ) : (
             <Text>No student selected.</Text>
           )}
         </ModalBody>
-
+        <Text fontSize={"xl"} fontWeight={"bold"} textAlign={"center"} mt={2}>
+          滞在時間: <Text as="span" fontSize="3xl">{totalStayTimeStr ? totalStayTimeStr : "未登録"}</Text>
+        </Text>
         <ModalFooter>
           {/* ボタンの色とテキストは出退勤状態に応じて切り替わります */}
           <Button

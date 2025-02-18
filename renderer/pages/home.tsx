@@ -46,7 +46,7 @@ export default function HomePage() {
       <TabList bg="gray.100" borderRadius="full" p={2}>
       <Tab 
         fontWeight="semibold"
-        _selected={{ color: 'white', bg: 'black' }}
+        _selected={{ color: 'white', bg: '#131113' }}
         px={5}
         py={2}
         mx={1}
@@ -57,7 +57,7 @@ export default function HomePage() {
       </Tab>
       <Tab
         fontWeight="semibold"
-        _selected={{ color: 'white', bg: 'black' }}
+        _selected={{ color: 'white', bg: '#131113' }}
         px={5}
         py={2}
         mx={1}
@@ -68,7 +68,7 @@ export default function HomePage() {
       </Tab>
       <Tab
         fontWeight="semibold"
-        _selected={{ color: 'white', bg: 'black' }}
+        _selected={{ color: 'white', bg: '#131113' }}
         px={5}
         py={2}
         mx={1}
