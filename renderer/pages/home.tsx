@@ -19,6 +19,7 @@ export default function HomePage() {
   const animation = `${bounce} 2s linear infinite`;
 
   const [isClient, setIsClient] = useState(false);
+  const [tabRefreshKeys, setTabRefreshKeys] = useState({ 0: 0, 1: 0, 2: 0 });
 
   useEffect(() => {
     setIsClient(true);
@@ -42,7 +43,16 @@ export default function HomePage() {
       overflow="hidden"
       bg= "white"
     >
-    <Tabs isFitted variant="enclosed" colorScheme="blue" size="md" bg="white">
+    <Tabs
+      isFitted
+      variant="enclosed"
+      colorScheme="blue"
+      size="md"
+      bg="white"
+      onChange={(index) => {
+        setTabRefreshKeys(prev => ({ ...prev, [index]: prev[index] + 1 }));
+      }}
+    >
       <TabList bg="gray.100" borderRadius="full" p={2}>
       <Tab 
         fontWeight="semibold"
@@ -87,13 +97,13 @@ export default function HomePage() {
       height={`calc(${scale}vh - 10vh)`}
       >
       <TabPanel>
-        <Tab1Content />
+        <Tab1Content key={tabRefreshKeys[0]} />
       </TabPanel>
       <TabPanel>
-        <Tab2Content />
+        <Tab2Content key={tabRefreshKeys[1]} />
       </TabPanel>
       <TabPanel>
-        <Tab3Content />
+        <Tab3Content key={tabRefreshKeys[2]} />
       </TabPanel>
       </TabPanels>
     </Tabs>
