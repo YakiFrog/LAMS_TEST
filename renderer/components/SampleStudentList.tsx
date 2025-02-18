@@ -1,3 +1,4 @@
+// このコンポーネントは学生リストの表示と出退勤状況を管理します
 import React, { useState, useEffect } from 'react';
 import { Box, Wrap, WrapItem, Text, Badge } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const SampleStudentList: React.FC<Props> = ({ students }) => {
+  // モーダル表示状態と選択された学生の状態管理
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [attendanceStates, setAttendanceStates] = useState<{
@@ -23,23 +25,24 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
   }>({});
 
   useEffect(() => {
-    // ローカルストレージから出勤状況を読み込む
+    // 出勤状況の初期化処理：ローカルストレージからデータを読み込み、日付が今日でない場合はリセットする
     const storedAttendanceStates = localStorage.getItem('attendanceStates');
+    console.log("attendanceStates", storedAttendanceStates);
     if (storedAttendanceStates) {
       const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
 
-      // 今日の日付を取得
+      // 今日の日付を取得（時刻情報をリセット）
       const today = new Date();
-      console.log(today);
       today.setHours(0, 0, 0, 0);
 
-      // 出勤状況を検証し、今日の日付と異なる場合はリセット
+      // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はデータを削除する
       Object.keys(parsedAttendanceStates).forEach(studentId => {
         const attendanceState = parsedAttendanceStates[studentId];
         if (attendanceState) {
           if (attendanceState.attendanceTime) {
             const attendanceDate = new Date(attendanceState.attendanceTime);
             attendanceDate.setHours(0, 0, 0, 0);
+            // 出勤日時が今日でなければ削除
             if (attendanceDate.getTime() !== today.getTime()) {
               delete parsedAttendanceStates[studentId];
               return;
@@ -50,6 +53,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
           if (attendanceState.leavingTime) {
             const leavingDate = new Date(attendanceState.leavingTime);
             leavingDate.setHours(0, 0, 0, 0);
+            // 退勤日時が今日でなければ削除
             if (leavingDate.getTime() !== today.getTime()) {
               delete parsedAttendanceStates[studentId];
               return;
@@ -63,9 +67,12 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
     }
   }, []);
 
-  const onClose = () => setIsOpen(false);
+  const onClose = () => {
+    // モーダルを閉じる処理
+    setIsOpen(false);
+  };
 
-  // 選択された学生情報を取得   
+  // 学生がクリックされた場合、選択状態を更新しモーダルを表示する
   const onOpen = (student: Student) => {
     setSelectedStudent(student);
     setIsOpen(true);
@@ -85,6 +92,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               cursor="pointer"
               onClick={() => onOpen(student)}
               position="relative"
+              // 出退勤状態に応じた枠線の色を設定：出勤中は緑、退勤済は赤、その他はグレー
               borderColor={
                 attendanceStates[student.id]?.isAttending
                   ? "green.400"
@@ -96,8 +104,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               <Text fontSize="2xl" color="gray.700" fontWeight="light">
                 {student.name}
               </Text>
-              {/* ラベル */}
-                {attendanceStates[student.id]?.isAttending && (
+              {/* 出勤中の場合のバッジ表示 */}
+              {attendanceStates[student.id]?.isAttending && (
                 <Badge
                   colorScheme="green"
                   position="absolute"
@@ -110,8 +118,9 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 >
                   出勤中
                 </Badge>
-                )}
-                {attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
+              )}
+              {/* 退勤済の場合のバッジ表示（出勤中ではない場合） */}
+              {attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
                 <Badge
                   colorScheme="red"
                   position="absolute"
@@ -124,7 +133,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 >
                   退勤済
                 </Badge>
-                )}
+              )}
             </Box>
           </WrapItem>
         ))}
