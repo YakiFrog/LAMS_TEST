@@ -27,17 +27,38 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
     const storedAttendanceStates = localStorage.getItem('attendanceStates');
     if (storedAttendanceStates) {
       const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
-      // Date オブジェクトに変換
+
+      // 今日の日付を取得
+      const today = new Date();
+      console.log(today);
+      today.setHours(0, 0, 0, 0);
+
+      // 出勤状況を検証し、今日の日付と異なる場合はリセット
       Object.keys(parsedAttendanceStates).forEach(studentId => {
-        const attendanceTime = parsedAttendanceStates[studentId].attendanceTime;
-        const leavingTime = parsedAttendanceStates[studentId].leavingTime;
-        if (attendanceTime) {
-          parsedAttendanceStates[studentId].attendanceTime = new Date(attendanceTime);
-        }
-        if (leavingTime) {
-          parsedAttendanceStates[studentId].leavingTime = new Date(leavingTime);
+        const attendanceState = parsedAttendanceStates[studentId];
+        if (attendanceState) {
+          if (attendanceState.attendanceTime) {
+            const attendanceDate = new Date(attendanceState.attendanceTime);
+            attendanceDate.setHours(0, 0, 0, 0);
+            if (attendanceDate.getTime() !== today.getTime()) {
+              delete parsedAttendanceStates[studentId];
+              return;
+            }
+            attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
+          }
+
+          if (attendanceState.leavingTime) {
+            const leavingDate = new Date(attendanceState.leavingTime);
+            leavingDate.setHours(0, 0, 0, 0);
+            if (leavingDate.getTime() !== today.getTime()) {
+              delete parsedAttendanceStates[studentId];
+              return;
+            }
+            attendanceState.leavingTime = new Date(attendanceState.leavingTime);
+          }
         }
       });
+
       setAttendanceStates(parsedAttendanceStates);
     }
   }, []);
