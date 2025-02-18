@@ -161,8 +161,17 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               display="flex"
               alignItems="center"
               justifyContent="center"
+              bg="white"
+              // ドロップシャドウを設定
+              boxShadow={
+              attendanceStates[student.id]?.isAttending
+                ? "0 1px 5px rgb(0, 255, 0)"
+                : attendanceStates[student.id]?.leavingTime
+                ? "0 1px 5px rgb(255, 0, 0)"
+                : "0 1px 2px rgba(0, 0, 0, 0.3)"
+              }
             >
-              <Text fontSize="2xl" color="#131113" fontWeight="light" noOfLines={1}>
+              <Text fontSize="2xl" color="#131113" fontWeight="medium" noOfLines={1}>
               {student.name}
               </Text>
               {/* 出勤中の場合のバッジ表示 */}

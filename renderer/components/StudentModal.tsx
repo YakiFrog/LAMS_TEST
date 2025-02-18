@@ -193,7 +193,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         </Text>
         <ModalFooter>
           {/* ボタンの色とテキストは出退勤状態に応じて切り替わります */}
-          <Button
+            <Button
             colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
             onClick={handleAttendance}
             borderRadius="3xl"
@@ -202,9 +202,10 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             fontSize={"3xl"}
             fontWeight="black"
             letterSpacing="wider"
-          >
+            boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(236, 255, 114, 0.62), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
+            >
             {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
-          </Button>
+            </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

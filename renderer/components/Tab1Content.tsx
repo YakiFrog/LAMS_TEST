@@ -175,7 +175,7 @@ const Tab1Content: React.FC = () => {
   }, []);
 
   return (
-    <Box p={6}>
+    <Box p={6} height="0vh">
       {/* SVGフィルター定義: アイコンに影効果 */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -203,7 +203,6 @@ const Tab1Content: React.FC = () => {
         py={3}
         px={10}
         borderRadius="full"
-        boxShadow="lg"
         onClick={handleClockClick}
         cursor="pointer"
         transition="transform 0.1s ease-in-out"
@@ -214,6 +213,7 @@ const Tab1Content: React.FC = () => {
         justifyContent="center"
         width="42vw" // 幅をコンテンツに合わせて自動調整
         height="auto" // 高さをコンテンツに合わせて自動調整
+        boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
       >
         <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2} letterSpacing="wider">
           {/* 日付と時刻の表示 */}
@@ -260,15 +260,19 @@ const Tab1Content: React.FC = () => {
           px={6}
           pt={3}
           pb={1}
-          mt={1}
+          mt={2}
+          // ドロップシャドウを設定
+          boxShadow="0 5px 10px rgba(0, 0, 0, 0.6)"
+          color="#131113"
+          bg="white"
         >
             <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
             width="11vw" px={0} position="absolute" top={0} transform="translate(0%, -50%)"
-            textAlign="center" userSelect="none" letterSpacing="wider"
+            textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 2px 10px rgba(0, 0, 0, 0.4)"
             >
               {grade}
             </Heading>
-            <Box mt={7} mb={3}>
+            <Box mt={8} mb={4}>
               <SampleStudentList students={gradeStudents}/>
             </Box>
         </Box>

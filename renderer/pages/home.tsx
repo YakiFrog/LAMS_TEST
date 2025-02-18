@@ -4,8 +4,7 @@ import { keyframes } from '@emotion/react';
 import Tab1Content from '../components/Tab1Content';
 import Tab2Content from '../components/Tab2Content';
 import Tab3Content from '../components/Tab3Content';
-
-const version = 'v0.3.4';
+import pkg from '../../package.json'; // 追加：package.jsonからversionを取得
 
 export default function HomePage() {
   const scale = 98;
@@ -112,8 +111,8 @@ export default function HomePage() {
     </Tabs>
     <Box
       position="fixed"
-      bottom="7%"
-      right="5%"
+      bottom="6%"
+      right="4%"
       bg="red.500"
       color="white"
       borderRadius="3xl"
@@ -122,7 +121,7 @@ export default function HomePage() {
       width="auto"
       textAlign="center"
       zIndex={9999}
-      px={4}
+      px={7}
       py={2}
       transform="rotate(-20deg)"
       letterSpacing="0.08em"
@@ -137,9 +136,9 @@ export default function HomePage() {
       mt={0}
       letterSpacing="normal"
       fontFamily="sans-serif"
-      px={2}
+      px={8}
       >
-        {version}
+        {`v${pkg.version}`} {/* 修正: package.jsonのversionを表示 */}
       </Box>
     </Box>
     </Box>
