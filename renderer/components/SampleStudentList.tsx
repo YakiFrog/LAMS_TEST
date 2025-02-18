@@ -59,8 +59,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               borderWidth="2px"
               borderRadius="xl"
               py={3}
-              px={8}
-              mb={1}
+              px={6}
+              mb={0}
               cursor="pointer"
               onClick={() => onOpen(student)}
               position="relative"
@@ -72,7 +72,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                   : "gray.200"
               }
             >
-              <Text fontSize="xl" color="gray.700" fontWeight="light">
+              <Text fontSize="2xl" color="gray.700" fontWeight="light">
                 {student.name}
               </Text>
               {/* ラベル */}

@@ -169,7 +169,7 @@ const Tab1Content: React.FC = () => {
 
       <Box
         position="absolute"
-        top="8vh"
+        top="9%"
         left="50%"
         transform="translateX(-50%)"
         zIndex={1000}
