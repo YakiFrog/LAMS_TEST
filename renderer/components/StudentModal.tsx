@@ -199,10 +199,10 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             borderRadius="3xl"
             width="100%"
             height="7vh"
-            fontSize={"3xl"}
+            fontSize={"4xl"}
             fontWeight="black"
-            letterSpacing="wider"
-            boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(236, 255, 114, 0.62), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
+            letterSpacing="widest"
+            boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(233, 233, 233, 0.78), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
             >
             {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
             </Button>

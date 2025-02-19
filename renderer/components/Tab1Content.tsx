@@ -263,13 +263,13 @@ const Tab1Content: React.FC = () => {
           pb={1}
           mt={2}
           // ドロップシャドウを設定
-          boxShadow="0 5px 10px rgba(0, 0, 0, 0.6)"
+          boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
           color="#131113"
           bg="white"
         >
             <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
             width="11vw" px={0} position="absolute" top={0} transform="translate(0%, -50%)"
-            textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 2px 10px rgba(0, 0, 0, 0.4)"
+            textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
             >
               {grade}
             </Heading>

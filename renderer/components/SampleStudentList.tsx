@@ -165,10 +165,10 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               // ドロップシャドウを設定
               boxShadow={
               attendanceStates[student.id]?.isAttending
-                ? "0 1px 5px rgb(0, 255, 0)"
+                ? "0 2px 8px rgb(0, 255, 0)"
                 : attendanceStates[student.id]?.leavingTime
-                ? "0 1px 5px rgb(255, 0, 0)"
-                : "0 1px 2px rgba(0, 0, 0, 0.3)"
+                ? "0 2px 8px rgb(255, 0, 0)"
+                : "0 2px 2px rgba(0, 0, 0, 0.3)"
               }
             >
               <Text fontSize="2xl" color="#131113" fontWeight="medium" noOfLines={1}>
@@ -185,6 +185,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 zIndex={2}
                 borderRadius="full"
                 px={2}
+                boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
               >
                 出勤中
               </Badge>
@@ -200,6 +201,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 zIndex={2}
                 borderRadius="full"
                 px={2}
+                boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
               >
                 退勤済
               </Badge>
