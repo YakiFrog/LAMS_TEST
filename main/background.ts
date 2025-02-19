@@ -22,6 +22,8 @@ if (isProd) {
     },
   })
 
+  mainWindow.setFullScreen(true)
+
   if (isProd) {
     await mainWindow.loadURL('app://./home')
   } else {
