@@ -165,9 +165,9 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               // ドロップシャドウを設定
               boxShadow={
               attendanceStates[student.id]?.isAttending
-                ? "0 2px 8px rgb(0, 255, 0)"
+                ? "0 2px 4px rgb(0, 255, 0)"
                 : attendanceStates[student.id]?.leavingTime
-                ? "0 2px 8px rgb(255, 0, 0)"
+                ? "0 2px 4px rgb(255, 0, 0)"
                 : "0 2px 2px rgba(0, 0, 0, 0.3)"
               }
             >
