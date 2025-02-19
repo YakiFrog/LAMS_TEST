@@ -214,6 +214,7 @@ const Tab1Content: React.FC = () => {
         width="42vw" // 幅をコンテンツに合わせて自動調整
         height="auto" // 高さをコンテンツに合わせて自動調整
         boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
+        whiteSpace="nowrap"
       >
         <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2} letterSpacing="wider">
           {/* 日付と時刻の表示 */}
