@@ -11,6 +11,7 @@ import {
   ModalCloseButton,
   Button,
   Text,
+  useToast,
 } from '@chakra-ui/react';
 
 interface Props {
@@ -42,6 +43,21 @@ const getJapanTime = (): Date => {
 };
 
 const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceStates, setAttendanceStates }) => {
+  // トースト通知を使用するためのフック
+  const toast = useToast();
+  
+  // ローカルストレージへの保存を確認する関数
+  const verifyLocalStorageSave = (data: any): boolean => {
+    try {
+      localStorage.setItem('attendanceStates', JSON.stringify(data));
+      const savedData = localStorage.getItem('attendanceStates');
+      return savedData !== null && JSON.stringify(data) === savedData;
+    } catch (error) {
+      console.error('ローカルストレージ保存エラー:', error);
+      return false;
+    }
+  };
+
   // --- ボタンがクリックされた際の挙動 ---  
   // 学生情報が存在する場合、現在の出退勤状況に応じて出勤/退勤を切り替え、ローカルストレージに状態を保存します。
   const handleAttendance = () => {
@@ -94,8 +110,33 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         [studentId]: updatedState,
       };
 
-      // 更新された状態をローカルストレージに保存
-      localStorage.setItem('attendanceStates', JSON.stringify(newState));
+      // 更新された状態をローカルストレージに保存し、結果を確認
+      const saveSuccessful = verifyLocalStorageSave(newState);
+      
+      // 保存結果に応じてトースト通知
+      const action = updatedState.isAttending ? '出勤' : '退勤';
+      if (saveSuccessful) {
+        toast({
+          title: `${action}記録が保存されました`,
+          description: `${student.name}さんの${action}情報がローカルストレージに保存されました`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+          position: 'bottom',
+        });
+      } else {
+        toast({
+          title: `${action}記録の保存に失敗しました`,
+          description: `${student.name}さんの${action}情報の保存に問題が発生しました。再度お試しください。`,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+          position: 'bottom',
+        });
+        // 問題が発生した場合でも、アプリケーションの状態は更新する
+        console.error('ローカルストレージへの保存に失敗しました');
+      }
+
       return newState;
     });
     onClose(); // モーダルを閉じる

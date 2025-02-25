@@ -187,7 +187,9 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 px={2}
                 boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
               >
-                出勤中
+                {attendanceStates[student.id]?.attendanceTime ? 
+                  `${new Date(attendanceStates[student.id].attendanceTime!).getHours()}:${String(new Date(attendanceStates[student.id].attendanceTime!).getMinutes()).padStart(2, '0')} 出勤` : 
+                  '出勤中'}
               </Badge>
               )}
               {/* 退勤済の場合のバッジ表示（出勤中ではない場合） */}
@@ -203,7 +205,9 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 px={2}
                 boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
               >
-                退勤済
+                {attendanceStates[student.id]?.leavingTime ? 
+                  `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
+                  '退勤済'}
               </Badge>
               )}
             </Box>
