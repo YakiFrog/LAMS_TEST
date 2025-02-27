@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Box, Heading, Text } from '@chakra-ui/react';
 
 const Tab2Content: React.FC = () => {
   const [savedAttendanceStates, setSavedAttendanceStates] = useState<any>(null);
+  const [localStorageSize, setLocalStorageSize] = useState<number>(0);
+  const [localStorageMaxSize, setLocalStorageMaxSize] = useState<number>(5 * 1024 * 1024); // 5MB
 
   // ヘルパー関数：日付の時刻部分をリセット
   const resetTime = (date: Date): Date => {
@@ -14,6 +17,16 @@ const Tab2Content: React.FC = () => {
     const now = new Date();
     const utc = now.getTime() + now.getTimezoneOffset() * 60000;
     return new Date(utc + 9 * 60 * 60000);
+  };
+
+  const calculateLocalStorageSize = () => {
+    let total = 0;
+    for (let x in localStorage) {
+      if (localStorage.hasOwnProperty(x)) {
+        total += ((localStorage[x].length + x.length) * 2);
+      }
+    }
+    return total;
   };
 
   useEffect(() => {
@@ -53,18 +66,57 @@ const Tab2Content: React.FC = () => {
     } else {
       setSavedAttendanceStates('No data');
     }
+
+    setLocalStorageSize(calculateLocalStorageSize()); // ローカルストレージ容量を更新
   }, []);
 
+  const usagePercentage = ((localStorageSize / localStorageMaxSize) * 100).toFixed(2);
+
   return (
-    <div style={{ padding: '20px', backgroundColor: '#fff', color: '#000' }}>
-      {/* JSON形式の場合は整形して表示 */}
-      <h2>保存されている出勤状況</h2>
-      <pre>
-        {typeof savedAttendanceStates === 'object'
-          ? JSON.stringify(savedAttendanceStates, null, 2)
-          : savedAttendanceStates}
-      </pre>
-    </div>
+    <Box p={6} height="0vh">
+      <Box
+        position="absolute"
+        top="8%"
+        right="1%"
+        zIndex={1000}
+        bg="#131113"
+        py={2}
+        px={4}
+        borderRadius="full"
+        color="white"
+        boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
+      >
+        <Text fontSize="md" fontWeight="bold">
+          ローカルストレージ容量: {localStorageSize} bytes / {localStorageMaxSize} bytes ({usagePercentage}%)
+        </Text>
+      </Box>
+      <Box
+        borderWidth="5px"
+        borderColor="#131113"
+        borderRadius="3xl"
+        px={6}
+        pt={3}
+        pb={1}
+        mt={2}
+        boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
+        color="#131113"
+        bg="white"
+      >
+        <Heading as="h2" size="lg" color="white" bg="#131113" p={4} borderRadius="full"
+          width="30vw" px={0} top={"0%"} transform="translate(0%, -70%)"
+          textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
+        >
+          保存されている出勤状況
+        </Heading>
+        <Box mt={-8} mb={4}>
+          <pre>
+            {typeof savedAttendanceStates === 'object'
+              ? JSON.stringify(savedAttendanceStates, null, 2)
+              : savedAttendanceStates}
+          </pre>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
