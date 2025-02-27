@@ -103,7 +103,7 @@ const Tab2Content: React.FC = () => {
         bg="white"
       >
         <Heading as="h2" size="lg" color="white" bg="#131113" p={4} borderRadius="full"
-          width="30vw" px={0} top={"0%"} transform="translate(0%, -70%)"
+          width="md" top={"0%"} transform="translate(0%, -70%)"
           textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
         >
           保存されている出勤状況
