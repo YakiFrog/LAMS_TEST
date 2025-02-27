@@ -3,6 +3,7 @@
   "name": "lams-test",
   "description": "My application description",
   "version": "0.5.0",
+  "versionDescription": "出退勤の時間表示・データタブの改良",
   "author": "Ketan Patel <ktan.p.patel@gmail.com>",
   "main": "app/background.js",
   "scripts": {

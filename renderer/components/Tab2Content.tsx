@@ -76,18 +76,20 @@ const Tab2Content: React.FC = () => {
     <Box p={6} height="0vh">
       <Box
         position="absolute"
-        top="8%"
+        top="9%"
         right="1%"
         zIndex={1000}
-        bg="#131113"
-        py={2}
+        bg="red.600"
+        py={3}
         px={4}
         borderRadius="full"
         color="white"
-        boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
+        boxShadow="0 4px 8px rgba(255, 0, 0, 0.6)"
+        borderWidth="2px"
+        borderColor="yellow.300"
       >
         <Text fontSize="md" fontWeight="bold">
-          ローカルストレージ容量: {localStorageSize} bytes / {localStorageMaxSize} bytes ({usagePercentage}%)
+          ローカルストレージ容量: {localStorageSize} / {localStorageMaxSize} bytes ({usagePercentage}%)
         </Text>
       </Box>
       <Box
