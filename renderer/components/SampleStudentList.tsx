@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Wrap, WrapItem, Text, Badge } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
+import { exportAttendanceToCSV } from '../utils/exportAttendance';
 
 interface Student {
   id: string;
   name: string;
+  grade: '教員' | 'M2' | 'M1' | 'B4';
 }
 
 interface Props {
@@ -38,6 +40,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
         today.setHours(0, 0, 0, 0);
 
         let updated = false; // 更新フラグ
+        let needsExport = false; // エクスポートが必要かのフラグ
 
         // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はデータを削除する
         Object.keys(parsedAttendanceStates).forEach(studentId => {
@@ -46,6 +49,10 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
             if (attendanceState.attendanceTime) {
               const attendanceDate = new Date(attendanceState.attendanceTime);
               attendanceDate.setHours(0, 0, 0, 0);
+              // 出勤日時が今日でなければエクスポートフラグをセット
+              if (attendanceDate.getTime() !== today.getTime()) {
+                needsExport = true;
+              }
               // 出勤日時が今日でなければ削除
               if (attendanceDate.getTime() !== today.getTime()) {
                 delete parsedAttendanceStates[studentId];
@@ -73,6 +80,22 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
           }
         });
 
+        // 日付が変わったデータがある場合、削除前にCSVエクスポートを実行
+        if (needsExport) {
+          // エクスポート処理を実行
+          exportAttendanceToCSV(parsedAttendanceStates, students, false)
+            .then(result => {
+              if (result.success) {
+                console.log('自動エクスポート成功:', result.message);
+              } else {
+                console.error('自動エクスポート失敗:', result.message);
+              }
+            })
+            .catch(error => {
+              console.error('自動エクスポートエラー:', error);
+            });
+        }
+
         setAttendanceStates(parsedAttendanceStates);
       }
     };
@@ -81,7 +104,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
     const intervalId = setInterval(loadAttendanceStates, 30 * 60 * 1000); // 30分ごとに実行
     // クリーンアップ関数：コンポーネントがアンマウントされたときにsetIntervalをクリアする
     return () => clearInterval(intervalId);
-  }, []);
+  }, [students]);
 
   // 22:30を超えたときに出勤中の学生を22:30時点で自動退勤に更新するuseEffect
   useEffect(() => {

@@ -3,6 +3,9 @@ import { Box, Heading, Text, Divider } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import SampleStudentList from './SampleStudentList';
 import { WiDaySunny, WiCloudy, WiRain, WiThunderstorm, WiSnow } from 'react-icons/wi';
+import { exportAttendanceToCSV } from '../utils/exportAttendance';
+import { Button, useToast } from '@chakra-ui/react';
+import { DownloadIcon } from '@chakra-ui/icons';
 
 // 型定義: 学生情報
 interface Student {
@@ -32,6 +35,8 @@ const Tab1Content: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [isBouncing, setIsBouncing] = useState(false);
   const [weatherIcon, setWeatherIcon] = useState<React.ReactNode | null>(null);
+  const toast = useToast();
+  const [isExporting, setIsExporting] = useState(false);
 
   // useEffect 1: コンポーネントの初回マウント時のみ実行
   useEffect(() => {
@@ -174,6 +179,60 @@ const Tab1Content: React.FC = () => {
     return () => clearInterval(intervalId); // メモリリーク防止
   }, []);
 
+  // 手動エクスポート実行関数
+  const handleManualExport = async () => {
+    const exportPath = localStorage.getItem('exportPath');
+    if (!exportPath) {
+      toast({
+        title: "エクスポートエラー",
+        description: "エクスポート先が設定されていません。管理タブで設定してください。",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setIsExporting(true);
+    
+    try {
+      // 出勤データを取得
+      const attendanceStates = JSON.parse(localStorage.getItem('attendanceStates') || '{}');
+      
+      // CSVエクスポート実行
+      const result = await exportAttendanceToCSV(attendanceStates, students, true);
+      
+      if (result.success) {
+        toast({
+          title: "エクスポート成功",
+          description: result.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "エクスポート失敗",
+          description: result.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('手動エクスポートエラー:', error);
+      toast({
+        title: "エクスポートエラー",
+        description: `エクスポート処理中にエラーが発生しました: ${error}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Box p={6} height="0vh">
       {/* SVGフィルター定義: アイコンに影効果 */}
@@ -278,6 +337,23 @@ const Tab1Content: React.FC = () => {
             </Box>
         </Box>
       ))}
+
+      {/* エクスポートボタン */}
+      <Button
+        position="absolute"
+        bottom="20px"
+        right="20px"
+        colorScheme="purple"
+        leftIcon={<DownloadIcon />}
+        onClick={handleManualExport}
+        isLoading={isExporting}
+        loadingText="エクスポート中..."
+        zIndex={1000}
+        boxShadow="lg"
+        isDisabled={isExporting}
+      >
+        出勤データをエクスポート
+      </Button>
     </Box>
   );
 };

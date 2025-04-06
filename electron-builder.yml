@@ -1,6 +1,6 @@
-appId: com.lams.test
-productName: LAMS_TEST
-copyright: Copyright © 2018 Yoshihide Shiono
+appId: com.example.nextron
+productName: LAMS-TEST
+copyright: Copyright © 2024 NLAB
 directories:
   output: dist
   buildResources: resources
@@ -10,3 +10,24 @@ files:
       - package.json
       - app
 publish: null
+electronVersion: 34.2.0
+extraMetadata:
+  main: app/background.js
+appx:
+  applicationId: LAMS-TEST
+mac:
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+extraResources:
+  - from: resources
+    to: .
+    filter:
+      - '**/*'

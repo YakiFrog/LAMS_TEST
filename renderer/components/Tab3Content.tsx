@@ -23,6 +23,36 @@ import {
 import { DeleteIcon } from '@chakra-ui/icons';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Papa from 'papaparse';
+import { exportAttendanceToCSV } from '../utils/exportAttendance';
+
+// Define the electron interface without using global declaration
+// This avoids conflicts with other global.d.ts files
+interface ElectronAPI {
+  selectDirectory: () => Promise<{ canceled: boolean; filePaths: string[] }>;
+  saveFile: (options: { filePath: string; data: string; }) => Promise<{ success: boolean; filePath?: string; error?: string; }>;
+  fileExists: (filePath: string) => Promise<{ exists: boolean; error?: string; }>;
+  readFile: (filePath: string) => Promise<string>;
+}
+
+// クライアントサイドでのみelectronAPIを初期化するためのフック
+const useElectronAPI = (): ElectronAPI | null => {
+  const [api, setApi] = useState<ElectronAPI | null>(null);
+
+  useEffect(() => {
+    // クライアントサイドでのみwindowオブジェクトにアクセス
+    if (typeof window !== 'undefined') {
+      // 明示的に型チェックを行う
+      if ((window as any).electron) {
+        setApi((window as any).electron);
+        console.log('Electron API detected:', (window as any).electron);
+      } else {
+        console.warn('Electron API not found in window object');
+      }
+    }
+  }, []);
+
+  return api;
+};
 
 interface Student {
   id: string;
@@ -74,6 +104,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 );
 
 const Tab3Content: React.FC = () => {
+  const electronAPI = useElectronAPI();
   const [students, setStudents] = useState<Student[]>([]);
   const [newStudentName, setNewStudentName] = useState('');
   const [selectedGrade, setSelectedGrade] = useState<'教員' | 'M2' | 'M1' | 'B4'>('B4');
@@ -94,11 +125,24 @@ const Tab3Content: React.FC = () => {
   const [isClearAllStudentsDeleteDialogOpen, setIsClearAllStudentsDeleteDialogOpen] = useState(false);
   const cancelRef = React.useRef(null);
 
+  // エクスポート設定用の状態
+  const [exportPath, setExportPath] = useState<string>('');
+  // エクスポート処理中かどうかの状態
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
   // 初期読み込み時にローカルストレージから学生データを取得
   useEffect(() => {
     const storedStudents = localStorage.getItem('students');
     if (storedStudents) {
       setStudents(JSON.parse(storedStudents));
+    }
+  }, []);
+
+  // 初期読み込み時にエクスポートパス設定を取得
+  useEffect(() => {
+    const savedExportPath = localStorage.getItem('exportPath');
+    if (savedExportPath) {
+      setExportPath(savedExportPath);
     }
   }, []);
 
@@ -423,6 +467,127 @@ const Tab3Content: React.FC = () => {
     });
   };
 
+  // エクスポートパス設定を保存する関数
+  const saveExportPath = () => {
+    localStorage.setItem('exportPath', exportPath);
+    toast({
+      title: "設定保存完了",
+      description: "出勤データエクスポート先が保存されました",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  // エクスポートパスを選択するダイアログを開く関数
+  const selectExportPath = async () => {
+    try {
+      // electronAPIがクライアントサイドで利用可能なら使用
+      if (electronAPI) {
+        console.log('Using Electron API to select directory');
+        const result = await electronAPI.selectDirectory();
+        if (result && !result.canceled && result.filePaths.length > 0) {
+          setExportPath(result.filePaths[0]);
+          return;
+        }
+      }
+      
+      // Electron APIが利用できない場合のフォールバック
+      console.log('Electron API not available, using fallback method');
+      
+      // 開発環境用のダミーパスを設定するか、手動入力を促す
+      if (process.env.NODE_ENV === 'development') {
+        const defaultPath = '/tmp/demo-export-path';
+        setExportPath(defaultPath);
+        toast({
+          title: "開発モードでの実行",
+          description: `開発環境ではダミーパスを使用します: ${defaultPath}。実環境ではNextronアプリとして実行してください。`,
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      
+      // ユーザーに直接入力してもらう
+      const path = prompt('エクスポート先のパスを入力してください:');
+      if (path) {
+        setExportPath(path);
+        return;
+      }
+      
+      toast({
+        title: "ディレクトリ選択エラー",
+        description: "Electron APIが利用できません。Nextronアプリとして実行してください。",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('ディレクトリ選択エラー:', error);
+      toast({
+        title: "ディレクトリ選択エラー",
+        description: `エクスポート先の選択中にエラーが発生しました: ${error}`,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // 手動エクスポート実行関数
+  const handleManualExport = async () => {
+    if (!exportPath) {
+      toast({
+        title: "エクスポートエラー",
+        description: "エクスポート先が設定されていません",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // 出勤データを取得
+      const attendanceStates = JSON.parse(localStorage.getItem('attendanceStates') || '{}');
+
+      // CSVエクスポート実行
+      const result = await exportAttendanceToCSV(attendanceStates, students, true);
+
+      if (result.success) {
+        toast({
+          title: "エクスポート成功",
+          description: result.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "エクスポート失敗",
+          description: result.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('手動エクスポートエラー:', error);
+      toast({
+        title: "エクスポートエラー",
+        description: `エクスポート処理中にエラーが発生しました: ${error}`,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Box p={5} height="100vh" display="flex" flexDirection="column">
       {/* 入力フォーム部分は固定表示 */}
@@ -509,6 +674,48 @@ const Tab3Content: React.FC = () => {
             全ての学生を削除
           </Button>
         </HStack>
+
+        {/* エクスポート設定セクション */}
+        <Box mt={4} p={4} borderWidth="1px" borderRadius="lg" bg="gray.50">
+          <Heading size="md" mb={2}>出勤データエクスポート設定</Heading>
+          <HStack spacing={2} mb={2}>
+            <Input 
+              placeholder="エクスポート先フォルダを選択" 
+              value={exportPath} 
+              onChange={(e) => setExportPath(e.target.value)}
+              flexGrow={1}
+              isReadOnly
+            />
+            <Button 
+              onClick={selectExportPath} 
+              colorScheme="blue"
+            >
+              参照
+            </Button>
+            <Button 
+              onClick={saveExportPath} 
+              colorScheme="green"
+              isDisabled={!exportPath}
+            >
+              保存
+            </Button>
+          </HStack>
+          <HStack spacing={2}>
+            <Button 
+              onClick={handleManualExport} 
+              colorScheme="purple" 
+              isDisabled={!exportPath || isExporting}
+              isLoading={isExporting}
+              loadingText="エクスポート中..."
+              leftIcon={<i className="fa fa-download" />}
+            >
+              出勤データを手動エクスポート
+            </Button>
+            <Text fontSize="sm" color="gray.600">
+              ※エクスポートは月ごとのファイル（attendance_YYYY-MM.csv）に保存されます
+            </Text>
+          </HStack>
+        </Box>
       </Box>
 
       {/* 削除確認モーダル */}
