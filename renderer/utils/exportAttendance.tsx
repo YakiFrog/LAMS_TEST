@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 // Extend Window interface to include electron property
 declare global {
   interface Window {
-    electron: any;
+    electron?: any;
   }
 }
 
@@ -28,9 +28,23 @@ interface AttendanceExportResult {
 
 // APIを安全に取得する関数
 const getElectronAPI = () => {
-  if (typeof window !== 'undefined' && window.electron) {
-    return window.electron;
+  if (typeof window !== 'undefined') {
+    // まずエラーを避けるためにwindow.electronの存在を確認
+    if (window.electron) {
+      console.log('Electron API found in window object');
+      return window.electron;
+    }
+    console.log('Electron API not found, using mock implementation');
+    // 開発モード用のモックAPIを返す
+    return {
+      isElectron: false,
+      selectDirectory: async () => ({ canceled: false, filePaths: ['/mock/path'] }),
+      saveFile: async (options: any) => ({ success: true, filePath: options.filePath }),
+      fileExists: async (filePath: string) => ({ exists: false }),
+      readFile: async (filePath: string) => ''
+    };
   }
+  console.log('Window object not available (SSR context)');
   return null;
 };
 
@@ -40,6 +54,12 @@ export async function exportAttendanceToCSV(
   isManualExport: boolean
 ): Promise<AttendanceExportResult> {
   try {
+    console.log('exportAttendanceToCSV called', { 
+      statesCount: Object.keys(attendanceStates).length, 
+      studentsCount: students.length,
+      isManualExport
+    });
+    
     // 出勤データが空の場合
     if (Object.keys(attendanceStates).length === 0) {
       return {
@@ -111,7 +131,14 @@ export async function exportAttendanceToCSV(
     console.log(`新しい出勤データ: ${newAttendanceRecords.length}件`);
 
     // 既存ファイルの読み込みとデータの結合
-    const fileExistsResult = await electronAPI.fileExists(filePath);
+    let fileExistsResult;
+    try {
+      fileExistsResult = await electronAPI.fileExists(filePath);
+    } catch (error) {
+      console.error('fileExists API error:', error);
+      fileExistsResult = { exists: false };
+    }
+    
     let finalCsvData;
     
     if (fileExistsResult.exists) {
@@ -198,10 +225,31 @@ export async function exportAttendanceToCSV(
     }
     
     // ファイル保存
-    const result = await electronAPI.saveFile({
-      filePath,
-      data: finalCsvData,
-    });
+    let result;
+    try {
+      result = await electronAPI.saveFile({
+        filePath,
+        data: finalCsvData,
+      });
+    } catch (error) {
+      console.error('saveFile API error:', error);
+      // エラーの場合はブラウザモードでダウンロードを試みる
+      const blob = new Blob([finalCsvData], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      return {
+        success: true,
+        message: `Electron保存に失敗しましたが、ブラウザでダウンロードしました: ${fileName}`,
+      };
+    }
 
     if (result.success) {
       return {

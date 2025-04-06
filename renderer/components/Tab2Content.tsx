@@ -227,6 +227,16 @@ const Tab2Content: React.FC = () => {
   }, [selectedDate, toast]);
 
   const TimeOverrideAlert = () => {
+    // クライアントサイドでのみレンダリングするための状態
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+      setMounted(true);
+    }, []);
+    
+    // サーバーサイドレンダリング時には何も表示しない
+    if (!mounted) return null;
+    
     if (!isTimeOverrideEnabled()) return null;
     
     const overrideTime = getOverrideTime();
