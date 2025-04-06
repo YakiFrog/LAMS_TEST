@@ -266,9 +266,9 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   
   return (
     <VStack spacing={2} align="center" w="100%">
-      <Text fontSize="md" fontWeight="bold" mb={1}>
+      {/* <Text fontSize="mg" fontWeight="bold" mb={2}>
         直近の出勤曜日
-      </Text>
+      </Text> */}
       <HStack spacing={3} justify="center">
         {weekdays.map((day, index) => {
           const isAttendance = attendanceDays.includes(index);
@@ -343,6 +343,229 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
           );
         })}
       </HStack>
+    </VStack>
+  );
+};
+
+// 週・月・年の出勤統計を表示するコンポーネント
+interface AttendanceStatisticsProps {
+  studentId: string;
+}
+
+const AttendanceStatistics: React.FC<AttendanceStatisticsProps> = ({ studentId }) => {
+  const [statistics, setStatistics] = useState<{
+    weekly: { days: number; totalTime: string };
+    monthly: { days: number; totalTime: string };
+    yearly: { days: number; totalTime: string };
+  }>({
+    weekly: { days: 0, totalTime: '0時間0分' },
+    monthly: { days: 0, totalTime: '0時間0分' },
+    yearly: { days: 0, totalTime: '0時間0分' },
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const calculateAttendanceStatistics = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // 現在の日時を取得（時間操作モードを考慮）
+        const today = getCurrentTime();
+        
+        // CSV ファイルからデータを取得
+        const attendanceData = await fetchAttendanceData(studentId);
+        
+        if (!attendanceData || attendanceData.length === 0) {
+          console.log('出勤データが見つかりませんでした');
+          setStatistics({
+            weekly: { days: 0, totalTime: '0時間0分' },
+            monthly: { days: 0, totalTime: '0時間0分' },
+            yearly: { days: 0, totalTime: '0時間0分' },
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // 週の始まり（月曜日）を取得
+        const currentWeekStart = new Date(today);
+        const dayOfWeek = currentWeekStart.getDay(); // 0: 日曜, 1: 月曜, ..., 6: 土曜
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 月曜日までの日数を計算
+        currentWeekStart.setDate(currentWeekStart.getDate() - diff);
+        currentWeekStart.setHours(0, 0, 0, 0);
+
+        // 月の始まりを取得
+        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        // 年の始まりを取得
+        const currentYearStart = new Date(today.getFullYear(), 0, 1);
+
+        // 週・月・年の統計を計算
+        const weeklyStats = calculatePeriodStatistics(attendanceData, currentWeekStart, today);
+        const monthlyStats = calculatePeriodStatistics(attendanceData, currentMonthStart, today);
+        const yearlyStats = calculatePeriodStatistics(attendanceData, currentYearStart, today);
+
+        setStatistics({
+          weekly: weeklyStats,
+          monthly: monthlyStats,
+          yearly: yearlyStats,
+        });
+      } catch (err) {
+        console.error('統計計算エラー:', err);
+        setError('出勤統計の計算中にエラーが発生しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (studentId) {
+      calculateAttendanceStatistics();
+    }
+  }, [studentId]);
+
+  // 特定期間の統計を計算する関数
+  const calculatePeriodStatistics = (
+    data: any[],
+    startDate: Date,
+    endDate: Date
+  ): { days: number; totalTime: string } => {
+    // 期間内のデータをフィルタリング
+    const filteredData = data.filter(record => {
+      const recordDate = parseDate(record.date);
+      return recordDate >= startDate && recordDate <= endDate;
+    });
+
+    // 日数をカウント（ユニークな日付の数）
+    const uniqueDates = new Set(filteredData.map(record => record.date));
+    const daysCount = uniqueDates.size;
+
+    // 滞在時間の合計を計算
+    let totalSeconds = 0;
+    filteredData.forEach(record => {
+      totalSeconds += record.stayTimeSeconds;
+    });
+
+    // 滞在時間を時間と分に変換
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const formattedTime = `${hours}時間${minutes}分`;
+
+    return { days: daysCount, totalTime: formattedTime };
+  };
+
+  // CSV ファイルから出勤データを取得する関数
+  const fetchAttendanceData = async (studentId: string): Promise<any[]> => {
+    // Electron API が利用可能かチェック
+    if (typeof window === 'undefined' || !window.electron) {
+      console.log('Electron API が利用できません');
+      return [];
+    }
+
+    const exportPath = localStorage.getItem('exportPath');
+    if (!exportPath) {
+      console.log('エクスポートパスが設定されていません');
+      return [];
+    }
+
+    try {
+      const today = getCurrentTime();
+      const currentYear = today.getFullYear();
+      
+      // 収集したすべての出勤データを保持する配列
+      const allAttendanceData: any[] = [];
+      
+      // 現在の年のすべての月のデータを取得
+      for (let month = 1; month <= 12; month++) {
+        const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+        const fileName = `attendance_${monthKey}.csv`;
+        const filePath = `${exportPath}/${fileName}`;
+        
+        // ファイルが存在するかチェック
+        const exists = await window.electron.fileExists(filePath);
+        
+        if (exists.exists) {
+          console.log(`CSVファイルが見つかりました: ${filePath}`);
+          const csvContent = await window.electron.readFile(filePath);
+          
+          if (csvContent) {
+            // CSV をパース
+            const parsedData = Papa.parse(csvContent, { header: true });
+            
+            if (parsedData.data && Array.isArray(parsedData.data)) {
+              // 学生IDでフィルタリング
+              const studentRecords = parsedData.data.filter((record: any) => 
+                record['学生ID'] === studentId && record['日付']
+              );
+              
+              // データを標準形式に変換
+              studentRecords.forEach((record: any) => {
+                try {
+                  if (!record['日付']) return;
+                  
+                  const stayTimeSeconds = parseInt(record['滞在時間（秒）'] || '0');
+                  
+                  allAttendanceData.push({
+                    date: record['日付'],
+                    stayTimeSeconds: stayTimeSeconds,
+                  });
+                } catch (e) {
+                  console.error('データ変換エラー:', e);
+                }
+              });
+            }
+          }
+        }
+      }
+      
+      return allAttendanceData;
+    } catch (error) {
+      console.error('出勤データ取得エラー:', error);
+      return [];
+    }
+  };
+
+  // MM/DD形式の日付をDateオブジェクトに変換
+  const parseDate = (dateStr: string): Date => {
+    const [month, day] = dateStr.split('/').map(Number);
+    const year = getCurrentTime().getFullYear();
+    return new Date(year, month - 1, day);
+  };
+
+  if (isLoading) {
+    return (
+      <Box textAlign="center" py={2}>
+        <Spinner size="sm" mr={2} />
+        <Text display="inline" fontSize="sm">統計データを計算中...</Text>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box textAlign="center" py={2} color="red.500" fontSize="sm">
+        <Text>{error}</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <VStack spacing={0} align="center" w="100%" textAlign="center">
+      <Box>
+        <Text fontSize="sm" fontWeight="bold" color="gray.700">
+          今週の出勤: <Text as="span" fontSize="2xl" fontWeight="bold">{statistics.weekly.days}</Text><Text as="span" fontSize="sm" fontWeight="bold">日間</Text> <Text as="span" mx={1}>-</Text> <Text as="span" fontSize="2xl" fontWeight="bold">{statistics.weekly.totalTime}</Text>
+        </Text>
+      </Box>
+      <Box>
+        <Text fontSize="sm" fontWeight="bold" color="gray.700">
+          今月の出勤: <Text as="span" fontSize="2xl" fontWeight="bold">{statistics.monthly.days}</Text><Text as="span" fontSize="sm" fontWeight="bold">日間</Text> <Text as="span" mx={1}>-</Text> <Text as="span" fontSize="2xl" fontWeight="bold">{statistics.monthly.totalTime}</Text>
+        </Text>
+      </Box>
+      <Box>
+        <Text fontSize="sm" fontWeight="bold" color="gray.700">
+          今年の出勤: <Text as="span" fontSize="2xl" fontWeight="bold">{statistics.yearly.days}</Text><Text as="span" fontSize="sm" fontWeight="bold">日間</Text> <Text as="span" mx={1}>-</Text> <Text as="span" fontSize="2xl" fontWeight="bold">{statistics.yearly.totalTime}</Text>
+        </Text>
+      </Box>
     </VStack>
   );
 };
@@ -543,16 +766,8 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
               {/* 曜日出勤状況の表示 */}
               {student.id && <WeekdayAttendanceIndicator studentId={student.id} />}
               
-              {/* 以下は将来の実装のためのプレースホルダー */}
-              <Box as="p" fontSize="sm" color="gray.500" mt={2}>
-                週あたりの出勤日数・滞在時間を表示
-              </Box>
-              <Box as="p" fontSize="sm" color="gray.500">
-                月あたりの出勤日数・滞在時間を表示
-              </Box>
-              <Box as="p" fontSize="sm" color="gray.500">
-                年あたりの出勤日数・滞在時間を表示
-              </Box>
+              {/* 週・月・年の出勤統計を表示 */}
+              {student.id && <AttendanceStatistics studentId={student.id} />}
             </VStack>
           ) : (
             <Text>No student selected.</Text>
