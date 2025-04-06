@@ -29,6 +29,13 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
   }>({});
   const toast = useToast();
 
+  // ReactのuseEffect hookを使用して、クライアントサイドレンダリングを制御する
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   useEffect(() => {
     const loadAttendanceStates = () => {
       // 出勤状況の初期化処理：ローカルストレージからデータを読み込み、日付が今日でない場合はリセットする
@@ -41,6 +48,9 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
 
         let needsExport = false; // エクスポートが必要かのフラグ
         let expiredStudentIds = []; // 期限切れの学生ID
+        
+        // 期限切れデータの詳細情報を保持
+        const expiredData = {};
 
         // 1. 期限切れのデータをチェックする（削除はまだしない）
         Object.keys(parsedAttendanceStates).forEach(studentId => {
@@ -53,6 +63,17 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 needsExport = true;
                 if (!expiredStudentIds.includes(studentId)) {
                   expiredStudentIds.push(studentId);
+                  // 期限切れデータを保存（元のDate型を維持）
+                  expiredData[studentId] = { 
+                    ...attendanceState,
+                    // 明示的にDateオブジェクトとして保存
+                    attendanceTime: new Date(attendanceState.attendanceTime),
+                    leavingTime: attendanceState.leavingTime ? new Date(attendanceState.leavingTime) : null
+                  };
+                  
+                  // デバッグログを追加
+                  const date = new Date(attendanceState.attendanceTime);
+                  console.log(`期限切れデータ詳細 [ID:${studentId}]: ${date.toLocaleString()} (${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日)`);
                 }
               }
             }
@@ -135,16 +156,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                 }
               }
 
-              // エクスポート用のデータを作成（期限切れのデータのみ）
-              const dataToExport = {};
-              expiredStudentIds.forEach(id => {
-                if (parsedAttendanceStates[id]) {
-                  dataToExport[id] = { ...parsedAttendanceStates[id] };
-                }
-              });
-              
-              // studentsデータを直接使用してエクスポート
-              exportAttendanceToCSV(dataToExport, finalStudentsList, false)
+              // expiredDataを直接使用してエクスポート（データをIDベースではなく期限切れデータのみに変更）
+              exportAttendanceToCSV(expiredData, finalStudentsList, false)
                 .then(result => {
                   if (result.success) {
                     console.log('自動エクスポート成功:', result.message);
@@ -354,8 +367,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               <Text fontSize="2xl" color="#131113" fontWeight="medium" noOfLines={1}>
               {student.name}
               </Text>
-              {/* 出勤中の場合のバッジ表示 */}
-              {attendanceStates[student.id]?.isAttending && (
+              {/* 出勤中の場合のバッジ表示 - クライアントサイドでのみレンダリング */}
+              {isClient && attendanceStates[student.id]?.isAttending && (
               <Badge
                 colorScheme="green"
                 position="absolute"
@@ -372,8 +385,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                   '出勤中'}
               </Badge>
               )}
-              {/* 退勤済の場合のバッジ表示（出勤中ではない場合） */}
-              {attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
+              {/* 退勤済の場合のバッジ表示 - クライアントサイドでのみレンダリング */}
+              {isClient && attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
               <Badge
                 colorScheme="red"
                 position="absolute"

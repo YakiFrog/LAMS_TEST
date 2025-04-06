@@ -29,6 +29,25 @@ export function getJapanTime(): Date {
 }
 
 /**
+ * 日本時間を "YYYY-MM-DDThh:mm" 形式の文字列で取得する
+ * HTML の datetime-local 入力に最適な形式
+ * @returns 日本時間の文字列（YYYY-MM-DDThh:mm形式）
+ */
+export function getJapanTimeISOString(): string {
+  // 日本時間を取得
+  const japanTime = getJapanTime();
+  
+  // YYYY-MM-DDThh:mm 形式に整形
+  const year = japanTime.getFullYear();
+  const month = String(japanTime.getMonth() + 1).padStart(2, '0');
+  const day = String(japanTime.getDate()).padStart(2, '0');
+  const hours = String(japanTime.getHours()).padStart(2, '0');
+  const minutes = String(japanTime.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+/**
  * 日付部分を取り出す（時刻部分をリセット）
  * @param date 日付
  * @returns 時刻部分がリセットされた日付

@@ -89,6 +89,14 @@ export async function exportAttendanceToCSV(
     console.log('出勤データ数:', Object.keys(attendanceStates).length);
     console.log('手動エクスポート:', isManualExport);
     
+    // 出勤データをデバッグ表示 (より詳細な情報を表示)
+    Object.entries(attendanceStates).forEach(([studentId, state]) => {
+      if (state.attendanceTime) {
+        const date = new Date(state.attendanceTime);
+        console.log(`データ確認 [ID:${studentId}]: ${date.toLocaleString()} (${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日)`);
+      }
+    });
+    
     // 出勤データが空の場合
     if (Object.keys(attendanceStates).length === 0) {
       return {
@@ -101,25 +109,39 @@ export async function exportAttendanceToCSV(
     if (!isElectronAvailable()) {
       console.warn('警告: Electron APIが検出できませんでした。ブラウザモードで実行します。');
       
-      // ブラウザ環境では直接ダウンロード
-      const csvData = generateCSVContent(attendanceStates, students);
-      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      const date = getCurrentTime();
-      const fileName = `attendance_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}.csv`;
+      // データを年月ごとに分類
+      const { monthlyData } = classifyDataByMonth(attendanceStates, students);
       
-      link.setAttribute("href", url);
-      link.setAttribute("download", fileName);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      return {
-        success: true,
-        message: 'ブラウザモードで出勤データをダウンロードしました',
-      };
+      // ブラウザ環境では直接ダウンロード - 最初の年月のデータのみ
+      if (Object.keys(monthlyData).length > 0) {
+        const firstMonthKey = Object.keys(monthlyData)[0];
+        const { year, month, records } = monthlyData[firstMonthKey];
+        
+        const csvData = generateCSVContent(records);
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const fileName = `attendance_${year}-${String(month).padStart(2, '0')}.csv`;
+        
+        console.log(`ブラウザモードでエクスポート: ${fileName} (${records.length}件)`);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        return {
+          success: true,
+          message: `ブラウザモードで${year}年${month}月の出勤データをダウンロードしました`,
+        };
+      } else {
+        return {
+          success: false,
+          message: '有効な出勤データが見つかりませんでした',
+        };
+      }
     }
 
     // 保存先パスの取得
@@ -131,66 +153,107 @@ export async function exportAttendanceToCSV(
       };
     }
 
-    // CSVデータの生成
-    const csvData = generateCSVContent(attendanceStates, students);
+    // データを年月ごとに分類
+    const { monthlyData } = classifyDataByMonth(attendanceStates, students);
     
-    // エクスポートする月を特定
-    // 手動エクスポートの場合は現在の月、自動エクスポートの場合はデータの月を使用
-    let monthToExport: Date;
-    
-    if (isManualExport) {
-      // 手動エクスポートの場合は現在の日付を使用
-      monthToExport = getCurrentTime();
-    } else {
-      // 自動エクスポートの場合は、データの最初のエントリの日付を使用
-      const firstEntry = Object.values(attendanceStates)[0];
-      if (firstEntry && firstEntry.attendanceTime) {
-        monthToExport = new Date(firstEntry.attendanceTime);
-      } else {
-        // データの日付が取得できない場合は現在の日付を使用
-        monthToExport = getCurrentTime();
-      }
+    // 年月ごとに別々のファイルにエクスポート
+    if (Object.keys(monthlyData).length === 0) {
+      return {
+        success: false,
+        message: '有効な出勤データが見つかりませんでした',
+      };
     }
-      
-    const fileName = `attendance_${monthToExport.getFullYear()}-${String(monthToExport.getMonth() + 1).padStart(2, '0')}.csv`;
-    const filePath = `${exportPath}/${fileName}`;
-
-    console.log(`エクスポート先ファイル: ${filePath}`, { monthToExport, isManualExport });
-
-    // ファイルの存在確認
-    const fileExistsResult = await window.electron.fileExists(filePath);
-    let finalCsvData = csvData;
-
-    // 既存ファイルがある場合、内容をマージ
-    if (fileExistsResult.exists) {
-      try {
-        // 既存ファイルを読み込み
-        const existingContent = await window.electron.readFile(filePath);
+    
+    console.log(`${Object.keys(monthlyData).length}つの年月のデータが見つかりました`);
+    
+    // 各月のデータを保存
+    const results = await Promise.all(
+      Object.entries(monthlyData).map(async ([key, { year, month, records }]) => {
+        // ファイル名を完全修飾パスなしで生成
+        const fileName = `attendance_${year}-${String(month).padStart(2, '0')}.csv`;
+        // フルパス (exportPathで指定されたディレクトリ内にファイルを作成)
+        const filePath = `${exportPath}/${fileName}`;
         
-        // 既存データと新データをマージ
-        finalCsvData = mergeCSVData(existingContent, csvData);
-      } catch (error) {
-        console.error('既存ファイル読み込みエラー:', error);
-        // エラーが発生しても続行し、新しいデータだけで保存
-      }
-    }
-
-    // ファイルの保存
-    const result = await window.electron.saveFile({
-      filePath,
-      data: finalCsvData,
-    });
-
-    if (result.success) {
+        console.log(`処理: ${fileName} (${year}年${month}月のデータ ${records.length}件)`);
+        
+        // CSVデータの生成
+        const csvData = generateCSVContent(records);
+        
+        // ファイルの存在確認
+        const fileExistsResult = await window.electron.fileExists(filePath);
+        let finalCsvData = csvData;
+        
+        // 既存ファイルがある場合、内容をマージ
+        if (fileExistsResult.exists) {
+          try {
+            console.log(`既存ファイルを読み込み: ${filePath}`);
+            // 既存ファイルを読み込み
+            const existingContent = await window.electron.readFile(filePath);
+            
+            // 既存データと新データをマージ
+            finalCsvData = mergeCSVData(existingContent, csvData);
+          } catch (error) {
+            console.error('既存ファイル読み込みエラー:', error);
+            // エラーが発生しても続行し、新しいデータだけで保存
+          }
+        } else {
+          console.log(`新規ファイル作成: ${filePath}`);
+        }
+        
+        // ファイルの保存
+        try {
+          console.log(`ファイルに書き込み: ${filePath}`);
+          
+          const result = await window.electron.saveFile({
+            filePath,
+            data: finalCsvData,
+          });
+          
+          return {
+            success: result.success,
+            message: result.success ? 
+              `${year}年${month}月の出勤データを ${result.filePath} に保存しました。` : 
+              `${year}年${month}月のデータ保存に失敗: ${result.error}`,
+            filePath: result.filePath,
+            year,
+            month
+          };
+        } catch (error) {
+          console.error(`${year}年${month}月のデータ保存エラー:`, error);
+          return {
+            success: false,
+            message: `${year}年${month}月のデータ保存中にエラーが発生しました: ${error}`,
+            year,
+            month
+          };
+        }
+      })
+    );
+    
+    // 結果をまとめる
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    
+    // 成功した月のリストを作成
+    const successMonths = results
+      .filter(r => r.success)
+      .map(r => `${r.year}年${r.month}月`)
+      .join(', ');
+    
+    if (failureCount === 0) {
       return {
         success: true,
-        message: `出勤データを ${result.filePath} に保存しました。`,
-        filePath: result.filePath,
+        message: `${successMonths}のデータを正常にエクスポートしました。`,
+      };
+    } else if (successCount > 0) {
+      return {
+        success: true,
+        message: `${successMonths}のデータをエクスポートしましたが、${failureCount}つの月で問題が発生しました。`,
       };
     } else {
       return {
         success: false,
-        message: `ファイル保存中にエラーが発生しました: ${result.error}`,
+        message: `すべての月のデータエクスポートに失敗しました。`,
       };
     }
   } catch (error) {
@@ -203,21 +266,22 @@ export async function exportAttendanceToCSV(
 }
 
 /**
- * CSVデータを生成する関数
+ * 出勤データを年月ごとに分類する関数
  */
-function generateCSVContent(
+function classifyDataByMonth(
   attendanceStates: { [studentId: string]: AttendanceState },
   students: Student[]
-): string {
-  // デバッグ情報
-  console.log('=== CSVエクスポートデバッグ情報 ===');
-  console.log('出勤データのIDリスト:', Object.keys(attendanceStates));
-  console.log('学生データ件数:', students.length);
-  
+): {
+  monthlyData: {
+    [yearMonth: string]: {
+      year: number;
+      month: number;
+      records: any[];
+    }
+  }
+} {
   // 学生IDから名前を取得するマッピングを作成
   const studentMap: { [id: string]: string } = {};
-  
-  // 提供された学生リストからマッピングを作成
   students.forEach(student => {
     studentMap[student.id] = student.name;
   });
@@ -225,53 +289,127 @@ function generateCSVContent(
   // ローカルストレージの学生データからも補完
   const storedStudentsMap = getStudentsMap();
   
-  // CSVのヘッダー行: 日付を最初の列に追加
-  const headers = ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
-
-  // CSVの行データ
-  const rows = Object.entries(attendanceStates).map(([studentId, state]) => {
-    // マッピングされた学生名を取得、なければストレージから取得、それもなければIDを表示
+  // 月ごとのデータ
+  const monthlyData: {
+    [yearMonth: string]: {
+      year: number;
+      month: number;
+      records: any[];
+    }
+  } = {};
+  
+  // 各出勤データを処理
+  Object.entries(attendanceStates).forEach(([studentId, state]) => {
+    // 学生名を取得
     let studentName = studentMap[studentId];
-    
     if (!studentName && storedStudentsMap[studentId]) {
       studentName = storedStudentsMap[studentId].name;
     }
-    
     if (!studentName) {
       studentName = `ID:${studentId}`;
     }
     
-    console.log(`学生ID ${studentId} の名前: ${studentName}`);
-    
-    // 出勤日時から日付（月日）を抽出
+    // 出勤・退勤時間から年月を決定
+    let year: number;
+    let month: number;
+    let day: number;
     let attendanceDate = '';
     let fullAttendanceTime = '';
+    let leavingTime = '';
+    
     if (state.attendanceTime) {
+      // 出勤時間から日付を取得
       const date = new Date(state.attendanceTime);
-      // 月/日 形式の日付
-      attendanceDate = `${date.getMonth() + 1}/${date.getDate()}`;
+      year = date.getFullYear();
+      month = date.getMonth() + 1;
+      day = date.getDate();
+      attendanceDate = `${month}/${day}`;
       fullAttendanceTime = date.toLocaleString('ja-JP');
+      
+      console.log(`出勤データ分類: [ID:${studentId}] ${year}年${month}月${day}日`);
+    } else if (state.leavingTime) {
+      // 出勤時間がなく退勤時間がある場合
+      const date = new Date(state.leavingTime);
+      year = date.getFullYear();
+      month = date.getMonth() + 1;
+      day = date.getDate();
+      attendanceDate = `${month}/${day}`;
+      
+      console.log(`退勤のみデータ分類: [ID:${studentId}] ${year}年${month}月${day}日`);
+    } else {
+      // 両方ない場合は現在の年月を使用（通常はこのケースはない）
+      const now = getCurrentTime();
+      year = now.getFullYear();
+      month = now.getMonth() + 1;
+      day = now.getDate();
+      attendanceDate = `${month}/${day}`;
+      console.warn(`警告: 学生ID ${studentId} のデータに出勤時間も退勤時間もありません。${year}年${month}月${day}日として処理します。`);
     }
     
-    const leavingTime = state.leavingTime ? new Date(state.leavingTime).toLocaleString('ja-JP') : '';
+    if (state.leavingTime) {
+      leavingTime = new Date(state.leavingTime).toLocaleString('ja-JP');
+    }
+    
+    // 滞在時間の計算
     const totalSeconds = state.totalStayTime || 0;
     const formattedTime = `${Math.floor(totalSeconds / 3600)}時間${Math.floor((totalSeconds % 3600) / 60)}分`;
+    
+    // レコードの作成
+    const record = {
+      '日付': attendanceDate,
+      '学生ID': studentId,
+      '学生名': studentName,
+      '出勤日時': fullAttendanceTime,
+      '退勤日時': leavingTime,
+      '滞在時間（秒）': totalSeconds.toString(),
+      '滞在時間': formattedTime
+    };
+    
+    // 年月ごとにデータを分類
+    const yearMonthKey = `${year}-${month}`;
+    if (!monthlyData[yearMonthKey]) {
+      monthlyData[yearMonthKey] = {
+        year,
+        month,
+        records: []
+      };
+    }
+    
+    monthlyData[yearMonthKey].records.push(record);
+  });
+  
+  // 月ごとのデータ件数をログ出力
+  Object.entries(monthlyData).forEach(([key, data]) => {
+    console.log(`年月データ: ${key} (${data.year}年${data.month}月) ${data.records.length}件`);
+  });
+  
+  return { monthlyData };
+}
 
-    return [
-      attendanceDate, // 日付を最初の列に
-      studentId,
-      studentName,
-      fullAttendanceTime,
-      leavingTime,
-      totalSeconds.toString(),
-      formattedTime
-    ];
+/**
+ * CSVデータを生成する関数
+ */
+function generateCSVContent(records: any[]): string {
+  // CSVのヘッダー行
+  const headers = ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
+
+  // 日付でソート
+  const sortedRecords = [...records].sort((a, b) => {
+    if (!a['日付'] || !b['日付']) return 0;
+    
+    const [aMonth, aDay] = a['日付'].split('/').map(Number);
+    const [bMonth, bDay] = b['日付'].split('/').map(Number);
+    
+    if (aMonth !== bMonth) {
+      return aMonth - bMonth;
+    }
+    return aDay - bDay;
   });
 
   // Papaを使ってCSVデータを生成
   return Papa.unparse({
     fields: headers,
-    data: rows
+    data: sortedRecords
   });
 }
 

@@ -9,7 +9,7 @@ import { exportAttendanceToCSV } from '../utils/exportAttendance';
 import { useToast } from '@chakra-ui/react';
 import { DownloadIcon, TimeIcon, SettingsIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 import { FaFastForward } from 'react-icons/fa';
-import { getCurrentTime, getJapanTime, setOverrideTime, isTimeOverrideEnabled, getOverrideTime, advanceTimeBy } from '../utils/timeManager';
+import { getCurrentTime, getJapanTime, setOverrideTime, isTimeOverrideEnabled, getOverrideTime, advanceTimeBy, getJapanTimeISOString } from '../utils/timeManager';
 
 // 型定義: 学生情報
 interface Student {
@@ -47,9 +47,13 @@ const Tab1Content: React.FC = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [timeAdvanceMinutes, setTimeAdvanceMinutes] = useState(30);
 
-  // useEffect 1: コンポーネントの初回マウント時のみ実行
+  // ハイドレーションエラーを防ぐためのクライアントサイド判定
+  const [isClient, setIsClient] = useState(false);
+
+  // コンポーネントの初回マウント時のみ実行
   useEffect(() => {
     setIsMounted(true);
+    setIsClient(true); // クライアントサイドであることをマーク
   }, []);
 
   // useEffect 2: 初回マウント後に開始し、1秒ごとに時計を更新
@@ -306,11 +310,17 @@ const Tab1Content: React.FC = () => {
 
   // 現在時刻を時間設定フィールドに設定する関数
   const setCurrentTimeToInput = () => {
-    // 現在の実際の時間を取得
-    const now = new Date();
-    // YYYY-MM-DDThh:mm 形式に変換
-    const formattedDateTime = now.toISOString().slice(0, 16);
+    // getJapanTimeISOString 関数を使用して日本時間の正しい形式を取得
+    const formattedDateTime = getJapanTimeISOString();
     setTimeInputValue(formattedDateTime);
+    
+    toast({
+      title: "現在時刻を設定しました",
+      description: "日本時間を入力フィールドに設定しました",
+      status: "info",
+      duration: 2000,
+      isClosable: true,
+    });
   };
 
   // 時間を進める関数
@@ -406,8 +416,8 @@ const Tab1Content: React.FC = () => {
         whiteSpace="nowrap"
       >
         <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2} letterSpacing="wider">
-          {/* 日付と時刻の表示 */}
-          {isMounted && (
+          {/* 日付と時刻の表示 - クライアントサイドでのみレンダリング */}
+          {isClient && isMounted && (
             <>
               {currentTime.toLocaleDateString('ja-JP', {
                 year: 'numeric',
@@ -420,8 +430,8 @@ const Tab1Content: React.FC = () => {
             </>
           )}
         </Text>
-        {/* 時間オーバーライド中の場合のバッジ */}
-        {isTimeOverrideEnabled() && (
+        {/* 時間オーバーライド中の場合のバッジ - クライアントサイドでのみレンダリング */}
+        {isClient && isTimeOverrideEnabled() && (
           <Badge
             position="absolute"
             top="-40%"

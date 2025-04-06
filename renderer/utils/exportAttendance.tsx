@@ -55,12 +55,21 @@ export async function exportAttendanceToCSV(
       
       // ブラウザ環境の場合はCSVをダウンロード
       if (typeof window !== 'undefined') {
-        const csvData = generateCSVContent(attendanceStates, students);
+        // 出勤データから年月を取得
+        const { yearMonth, newAttendanceRecords } = extractYearMonthAndRecords(attendanceStates, students);
+        const { year, month } = yearMonth;
+        
+        const fileName = `attendance_${year}-${String(month).padStart(2, '0')}.csv`;
+        console.log(`ブラウザでエクスポート: ${fileName}`);
+        
+        const csvData = Papa.unparse({
+          fields: ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'],
+          data: newAttendanceRecords
+        });
+        
         const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
-        const date = new Date();
-        const fileName = `attendance_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}.csv`;
         
         link.setAttribute("href", url);
         link.setAttribute("download", fileName);
@@ -90,30 +99,105 @@ export async function exportAttendanceToCSV(
       };
     }
 
-    // CSVデータの生成
-    const csvData = generateCSVContent(attendanceStates, students);
-
-    // 現在の月に基づいてファイル名を決定
-    const date = new Date();
-    const fileName = `attendance_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}.csv`;
+    // 出勤データから年月とレコードを取得
+    const { yearMonth, newAttendanceRecords } = extractYearMonthAndRecords(attendanceStates, students);
+    const { year, month } = yearMonth;
+    
+    // 年月に基づいてファイル名を決定
+    const fileName = `attendance_${year}-${String(month).padStart(2, '0')}.csv`;
     const filePath = `${exportPath}/${fileName}`;
 
-    // ファイルの保存前に既存ファイルとのマージ処理
+    console.log(`ファイルパス: ${filePath} (${year}年${month}月のデータ)`);
+    console.log(`新しい出勤データ: ${newAttendanceRecords.length}件`);
+
+    // 既存ファイルの読み込みとデータの結合
+    const fileExistsResult = await electronAPI.fileExists(filePath);
     let finalCsvData;
-    try {
-      const fileExists = await electronAPI.fileExists(filePath);
-      if (fileExists && fileExists.exists) {
+    
+    if (fileExistsResult.exists) {
+      try {
+        console.log('既存ファイルが見つかりました。追記モードで処理します。');
+        // 既存ファイルを読み込み
         const existingContent = await electronAPI.readFile(filePath);
-        finalCsvData = mergeCSVFiles(existingContent, csvData);
-      } else {
-        finalCsvData = csvData;
+        
+        if (existingContent && existingContent.trim()) {
+          // 既存CSVを解析
+          const parsedExisting = Papa.parse(existingContent, { header: true });
+          if (parsedExisting.data && parsedExisting.data.length > 0) {
+            console.log(`既存ファイルから${parsedExisting.data.length}件のレコードを読み込みました`);
+            
+            // 重複を避けるために既存の日付と学生IDの組み合わせをチェック
+            const existingKeys = new Set<string>();
+            parsedExisting.data.forEach((record: any) => {
+              if (record['日付'] && record['学生ID']) {
+                const key = `${record['日付']}_${record['学生ID']}`;
+                existingKeys.add(key);
+              }
+            });
+            
+            // 既存データに新しいデータを追加（重複するキーを持つレコードはスキップ）
+            const newRecordsToAdd = newAttendanceRecords.filter(record => {
+              const key = `${record['日付']}_${record['学生ID']}`;
+              if (existingKeys.has(key)) {
+                console.log(`重複レコードをスキップ: ${key}`);
+                return false; // 重複レコードはスキップ
+              }
+              return true; // 新規レコードを追加
+            });
+            
+            console.log(`追加する新規レコード: ${newRecordsToAdd.length}件`);
+            
+            // ヘッダー行
+            const headers = parsedExisting.meta.fields || ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
+            
+            // 既存データの下に新しいデータを追加
+            const combinedData = [...parsedExisting.data, ...newRecordsToAdd];
+            
+            // 日付でソート
+            combinedData.sort((a: any, b: any) => {
+              if (!a['日付'] || !b['日付']) return 0;
+              
+              const [aMonth, aDay] = a['日付'].split('/').map(Number);
+              const [bMonth, bDay] = b['日付'].split('/').map(Number);
+              
+              if (aMonth !== bMonth) {
+                return aMonth - bMonth;
+              }
+              return aDay - bDay;
+            });
+            
+            // CSV形式に変換
+            finalCsvData = Papa.unparse({
+              fields: headers,
+              data: combinedData
+            });
+          } else {
+            console.log('既存ファイルが空または無効です。新しいデータのみで保存します。');
+            finalCsvData = generateCsvFromRecords(newAttendanceRecords);
+          }
+        } else {
+          console.log('既存ファイルが空です。新しいデータのみで保存します。');
+          finalCsvData = generateCsvFromRecords(newAttendanceRecords);
+        }
+      } catch (error) {
+        console.error('既存ファイル読み込みエラー:', error);
+        // エラーが発生した場合は新しいデータのみで続行
+        finalCsvData = generateCsvFromRecords(newAttendanceRecords);
       }
-    } catch (error) {
-      console.error('既存ファイル処理エラー:', error);
-      finalCsvData = csvData; // エラーの場合は新しいデータのみ使用
+    } else {
+      console.log('ファイルが存在しません。新規作成します。');
+      finalCsvData = generateCsvFromRecords(newAttendanceRecords);
     }
 
-    // ファイルの保存
+    // データ検証
+    try {
+      const dataCheck = Papa.parse(finalCsvData, { header: true });
+      console.log(`保存するCSVデータの行数: ${dataCheck.data.length}件`);
+    } catch (e) {
+      console.error('CSVデータの検証に失敗:', e);
+    }
+    
+    // ファイル保存
     const result = await electronAPI.saveFile({
       filePath,
       data: finalCsvData,
@@ -140,86 +224,118 @@ export async function exportAttendanceToCSV(
   }
 }
 
-// CSVコンテンツを生成する関数
-function generateCSVContent(
+// 出勤データから年月とレコードを抽出する関数
+function extractYearMonthAndRecords(
   attendanceStates: { [studentId: string]: AttendanceState },
   students: Student[]
-): string {
+): {
+  yearMonth: { year: number; month: number },
+  newAttendanceRecords: any[]
+} {
   // 学生IDから名前を取得するマッピングを作成
   const studentMap: { [id: string]: string } = {};
   students.forEach(student => {
     studentMap[student.id] = student.name;
   });
-
-  // CSVのヘッダー行 - 日付を最初の列に追加
-  const headers = ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
-
-  // CSVの行データ
-  const rows = Object.entries(attendanceStates).map(([studentId, state]) => {
+  
+  // 年月の集計用マップ - 各年月のデータ件数をカウント
+  const yearMonthCounts: Record<string, number> = {};
+  
+  // レコード配列に変換
+  const records = Object.entries(attendanceStates).map(([studentId, state]) => {
     const studentName = studentMap[studentId] || 'Unknown';
     
-    // 出勤日時から日付（月日）を抽出
+    // 出勤日時から日付（年月日）を抽出
     let attendanceDate = '';
     let fullAttendanceTime = '';
+    let year = new Date().getFullYear();
+    let month = new Date().getMonth() + 1;
+    
     if (state.attendanceTime) {
       const date = new Date(state.attendanceTime);
       // 月/日 形式の日付
       attendanceDate = `${date.getMonth() + 1}/${date.getDate()}`;
+      year = date.getFullYear();
+      month = date.getMonth() + 1;
       fullAttendanceTime = date.toLocaleString('ja-JP');
+      
+      // 年月のカウントを増やす
+      const yearMonthKey = `${year}-${month}`;
+      yearMonthCounts[yearMonthKey] = (yearMonthCounts[yearMonthKey] || 0) + 1;
     }
     
     const leavingTime = state.leavingTime ? new Date(state.leavingTime).toLocaleString('ja-JP') : '';
     const totalSeconds = state.totalStayTime || 0;
     const formattedTime = `${Math.floor(totalSeconds / 3600)}時間${Math.floor((totalSeconds % 3600) / 60)}分`;
 
-    return [
-      attendanceDate, // 日付を最初の列に
-      studentId,
-      studentName,
-      fullAttendanceTime,
-      leavingTime,
-      totalSeconds.toString(),
-      formattedTime
-    ];
+    return {
+      '日付': attendanceDate,
+      '学生ID': studentId,
+      '学生名': studentName,
+      '出勤日時': fullAttendanceTime,
+      '退勤日時': leavingTime,
+      '滞在時間（秒）': totalSeconds.toString(),
+      '滞在時間': formattedTime,
+      '_year': year,
+      '_month': month
+    };
   });
-
-  // Papaを使ってCSVデータを生成
-  return Papa.unparse({
-    fields: headers,
-    data: rows
+  
+  // 最も多い年月を特定
+  let maxCount = 0;
+  let mostCommonYearMonth = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+  
+  for (const [yearMonthKey, count] of Object.entries(yearMonthCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      const [yearStr, monthStr] = yearMonthKey.split('-');
+      mostCommonYearMonth = {
+        year: parseInt(yearStr),
+        month: parseInt(monthStr)
+      };
+    }
+  }
+  
+  console.log(`データから検出された最も多い年月: ${mostCommonYearMonth.year}年${mostCommonYearMonth.month}月 (${maxCount}件)`);
+  
+  // _yearと_monthフィールドを削除
+  const cleanedRecords = records.map(record => {
+    const { _year, _month, ...rest } = record;
+    return rest;
   });
+  
+  return {
+    yearMonth: mostCommonYearMonth,
+    newAttendanceRecords: cleanedRecords
+  };
 }
 
-// ファイルマージ処理のための関数を追加
-function mergeCSVFiles(existingCsv: string, newCsv: string): string {
-  // CSVレコードの型を定義
-  interface CSVRecord {
-    [key: string]: string;
-  }
-
-  // 既存のCSVと新しいCSVをパース
-  const existingData = Papa.parse<CSVRecord>(existingCsv, { header: true });
-  const newData = Papa.parse<CSVRecord>(newCsv, { header: true });
+// 既存レコードと新規レコードをマージする関数
+function mergeAttendanceRecords(existingRecords: any[], newRecords: any[]): any[] {
+  // 日付と学生IDの組み合わせをキーにしたマップを作成
+  const recordMap: { [key: string]: any } = {};
   
-  // ヘッダー行を取得
-  const headers = existingData.meta.fields || [];
-  
-  // 既存データと新しいデータをマージ
-  const mergedData = [...existingData.data, ...newData.data];
-  
-  // 重複を削除（日付と学生IDの組み合わせが同じレコードは新しいデータで上書き）
-  const uniqueRecords: { [key: string]: CSVRecord } = {};
-  mergedData.forEach(record => {
-    // キーを日付と学生IDの組み合わせに変更
-    const key = `${record['日付']}_${record['学生ID']}`;
-    uniqueRecords[key] = record;
+  // 既存レコードをマップに追加
+  existingRecords.forEach(record => {
+    if (record['日付'] && record['学生ID']) {
+      const key = `${record['日付']}_${record['学生ID']}`;
+      recordMap[key] = record;
+    }
   });
   
-  // 一意のレコードを配列に変換
-  const finalData = Object.values(uniqueRecords);
+  // 新規レコードを追加または上書き
+  newRecords.forEach(record => {
+    if (record['日付'] && record['学生ID']) {
+      const key = `${record['日付']}_${record['学生ID']}`;
+      recordMap[key] = record; // 既存キーがあれば上書き、なければ新規追加
+    }
+  });
+  
+  // マップから配列に戻す
+  const mergedRecords = Object.values(recordMap);
   
   // 日付でソート (MM/DD形式を考慮したソート)
-  finalData.sort((a, b) => {
+  mergedRecords.sort((a, b) => {
     if (!a['日付'] || !b['日付']) return 0;
     
     // 日付をMM/DD形式からDate型に変換してソート
@@ -234,9 +350,28 @@ function mergeCSVFiles(existingCsv: string, newCsv: string): string {
     return aDay - bDay;
   });
   
-  // マージしたデータをCSV形式に変換
+  return mergedRecords;
+}
+
+// レコード配列からCSVデータを生成するヘルパー関数
+function generateCsvFromRecords(records: any[]): string {
+  const headers = ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
+  
+  // 日付でソート
+  const sortedRecords = [...records].sort((a, b) => {
+    if (!a['日付'] || !b['日付']) return 0;
+    
+    const [aMonth, aDay] = a['日付'].split('/').map(Number);
+    const [bMonth, bDay] = b['日付'].split('/').map(Number);
+    
+    if (aMonth !== bMonth) {
+      return aMonth - bMonth;
+    }
+    return aDay - bDay;
+  });
+  
   return Papa.unparse({
     fields: headers,
-    data: finalData
+    data: sortedRecords
   });
 }
