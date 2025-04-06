@@ -1,6 +1,6 @@
 // このコンポーネントは学生の出退勤管理用モーダルです。
 // Propsには、モーダルの表示状態、学生情報、出退勤情報などが含まれます。
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -18,6 +18,13 @@ import {
   Circle,
   Spinner,
   Tooltip,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  PopoverArrow,
+  PopoverCloseButton,
+  useDisclosure
 } from '@chakra-ui/react';
 import { keyframes, Global } from '@emotion/react';
 import Papa from 'papaparse';
@@ -48,11 +55,17 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   const [error, setError] = useState<string | null>(null);
   // 曜日ごとの直近の日付情報を保持する状態
   const [recentWeekdayDates, setRecentWeekdayDates] = useState<Record<number, string>>({});
+  // 曜日ごとの滞在時間情報を保持する状態
+  const [weekdayStayTimes, setWeekdayStayTimes] = useState<Record<number, string>>({});
   
   const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
   
   // パルスアニメーションを定義
   const pulseAnimation = `${pulseKeyframes} 2s infinite`;
+
+  // タッチされている曜日のインデックスを追跡
+  const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
   
   useEffect(() => {
     const loadAttendanceData = async () => {
@@ -67,11 +80,13 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
         const dates = calculateRecentWeekdayDates();
         
         // CSVファイルからの出勤履歴チェック
-        const csvAttendanceDays = await loadAttendanceFromCSV(studentId, dates);
+        const { attendanceDays: csvAttendanceDays, stayTimes } = await loadAttendanceFromCSV(studentId, dates);
         if (csvAttendanceDays.length > 0) {
           // 既存の出勤日と CSV からの出勤日をマージ
           const mergedDays = Array.from(new Set([...detectedAttendanceDays, ...csvAttendanceDays]));
           detectedAttendanceDays = mergedDays;
+          // 滞在時間情報を保存
+          setWeekdayStayTimes(stayTimes);
         }
         
         setAttendanceDays(detectedAttendanceDays);
@@ -87,17 +102,17 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
     const loadAttendanceFromCSV = async (
       studentId: string,
       weekdayDates: Record<number, string>
-    ): Promise<number[]> => {
+    ): Promise<{ attendanceDays: number[], stayTimes: Record<number, string> }> => {
       // Electron API が利用可能かチェック
       if (typeof window === 'undefined' || !window.electron) {
         console.log('Electron API が利用できません。CSV ファイルの読み込みをスキップします。');
-        return [];
+        return { attendanceDays: [], stayTimes: {} };
       }
 
       const exportPath = localStorage.getItem('exportPath');
       if (!exportPath) {
         console.log('エクスポートパスが設定されていません。CSV ファイルの読み込みをスキップします。');
-        return [];
+        return { attendanceDays: [], stayTimes: {} };
       }
 
       try {
@@ -122,6 +137,7 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
         
         // 各月の CSV ファイルを読み込み、学生の出勤データを抽出
         const attendanceDays = new Set<number>();
+        const stayTimes: Record<number, string> = {};
         
         for (const monthKey of Array.from(neededMonths)) {
           const fileName = `attendance_${monthKey}.csv`;
@@ -163,6 +179,17 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                     weekday = weekday === 0 ? 6 : weekday - 1; // 0: 月曜, ..., 6: 日曜に変換
                     
                     attendanceDays.add(weekday);
+                    
+                    // 滞在時間情報があれば保存
+                    const stayTimeSeconds = parseInt(record['滞在時間（秒）'] || '0');
+                    if (stayTimeSeconds > 0) {
+                      const hours = Math.floor(stayTimeSeconds / 3600);
+                      const minutes = Math.floor((stayTimeSeconds % 3600) / 60);
+                      stayTimes[weekday] = `${hours}時間${minutes}分`;
+                    } else if (record['滞在時間']) {
+                      // 直接滞在時間フィールドがある場合
+                      stayTimes[weekday] = record['滞在時間'];
+                    }
                   } catch (e) {
                     console.error('日付解析エラー:', e);
                   }
@@ -174,10 +201,10 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
           }
         }
         
-        return Array.from(attendanceDays);
+        return { attendanceDays: Array.from(attendanceDays), stayTimes };
       } catch (error) {
         console.error('CSV ファイル読み込みエラー:', error);
-        return [];
+        return { attendanceDays: [], stayTimes: {} };
       }
     };
     
@@ -213,6 +240,12 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
       loadAttendanceData();
     }
   }, [studentId]);
+
+  // タッチまたはクリック時のハンドラー
+  const handleDaySelect = (index: number) => {
+    setActiveDayIndex(index);
+    onOpen();
+  };
   
   if (isLoading) {
     return (
@@ -244,44 +277,69 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
           // 直近の日付を取得
           const recentDate = recentWeekdayDates[index] || '日付なし';
           
-          // ツールチップのラベルを作成
-          const tooltipLabel = `${recentDate}：${isAttendance ? '出勤あり' : '出勤なし'}${isToday ? ' (今日)' : ''}`;
+          // 表示するコンテンツを作成
+          let popoverContent = '';
+          if (isAttendance) {
+            const stayTime = weekdayStayTimes[index] || '滞在時間不明';
+            popoverContent = `${recentDate}：${stayTime}`;
+          } else {
+            popoverContent = `${recentDate}：未出勤`;
+          }
+          
+          if (isToday) {
+            popoverContent += ' (今日)';
+          }
           
           return (
-            <Tooltip
+            <Popover
               key={index}
-              label={tooltipLabel}
+              isOpen={isOpen && activeDayIndex === index}
+              onClose={onClose}
               placement="top"
-              hasArrow
             >
-              <Circle
-                size="40px"
-                bg={isAttendance ? "red.500" : "gray.300"}
-                color="white"
-                fontWeight="bold"
-                cursor="pointer"
-                _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
-                transition="all 0.3s"
-                boxShadow={isToday ? "0 0 0 3px teal.400" : "none"}
-                borderWidth={isToday ? "4px" : "0"}
-                borderColor="teal.400"
-                position="relative"
-                _after={isToday ? {
-                  content: '""',
-                  position: 'absolute',
-                  top: '-4px',
-                  left: '-4px',
-                  right: '-4px',
-                  bottom: '-4px',
-                  borderRadius: 'full',
-                  borderWidth: '3px',
-                  borderColor: 'teal.400',
-                  animation: pulseAnimation
-                } : {}}
-              >
-                {day}
-              </Circle>
-            </Tooltip>
+              <PopoverTrigger>
+                <Circle
+                  size="40px"
+                  bg={isAttendance ? "red.500" : "gray.300"}
+                  color="white"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleDaySelect(index)}
+                  onTouchStart={() => handleDaySelect(index)}
+                  _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
+                  transition="all 0.3s"
+                  boxShadow={isToday ? "0 0 0 3px teal.400" : "none"}
+                  borderWidth={isToday ? "4px" : "0"}
+                  borderColor="teal.400"
+                  position="relative"
+                  _after={isToday ? {
+                    content: '""',
+                    position: 'absolute',
+                    top: '-4px',
+                    left: '-4px',
+                    right: '-4px',
+                    bottom: '-4px',
+                    borderRadius: 'full',
+                    borderWidth: '3px',
+                    borderColor: 'teal.400',
+                    animation: pulseAnimation
+                  } : {}}
+                >
+                  {day}
+                </Circle>
+              </PopoverTrigger>
+              <PopoverContent width="auto" p={1}>
+                <PopoverArrow />
+                <PopoverBody 
+                  textAlign="center" 
+                  fontFamily="inherit"
+                  fontSize="md"
+                  fontWeight="medium"
+                >
+                  {popoverContent}
+                </PopoverBody>
+              </PopoverContent>
+            </Popover>
           );
         })}
       </HStack>
@@ -507,22 +565,22 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         <Text fontSize={"xl"} fontWeight={"bold"} textAlign={"center"} mt={2}>
           滞在時間: <Text as="span" fontSize="3xl">{totalStayTimeStr ? totalStayTimeStr : "未登録"}</Text>
         </Text>
-        <ModalFooter>
-          {/* ボタンの色とテキストは出退勤状態に応じて切り替わります */}
-            <Button
-            colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
-            onClick={handleAttendance}
-            borderRadius="3xl"
-            width="100%"
-            height="7vh"
-            fontSize={"4xl"}
-            fontWeight="black"
-            letterSpacing="widest"
-            boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(233, 233, 233, 0.78), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
-            >
-            {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
-            </Button>
-        </ModalFooter>
+          <ModalFooter>
+            {/* ボタンの色とテキストは出退勤状態に応じて切り替わります */}
+              <Button
+              colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
+              onClick={handleAttendance}
+              borderRadius="3xl"
+              width="100%"
+              height="7vh"
+              fontSize={"4xl"}
+              fontWeight="black"
+              letterSpacing="widest"
+              boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(233, 233, 233, 0.78), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
+              >
+              {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
+              </Button>
+          </ModalFooter>
       </ModalContent>
     </Modal>
   );
