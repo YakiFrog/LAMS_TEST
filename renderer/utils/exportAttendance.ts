@@ -225,8 +225,8 @@ function generateCSVContent(
   // ローカルストレージの学生データからも補完
   const storedStudentsMap = getStudentsMap();
   
-  // CSVのヘッダー行
-  const headers = ['学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
+  // CSVのヘッダー行: 日付を最初の列に追加
+  const headers = ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
 
   // CSVの行データ
   const rows = Object.entries(attendanceStates).map(([studentId, state]) => {
@@ -243,15 +243,25 @@ function generateCSVContent(
     
     console.log(`学生ID ${studentId} の名前: ${studentName}`);
     
-    const attendanceTime = state.attendanceTime ? new Date(state.attendanceTime).toLocaleString('ja-JP') : '';
+    // 出勤日時から日付（月日）を抽出
+    let attendanceDate = '';
+    let fullAttendanceTime = '';
+    if (state.attendanceTime) {
+      const date = new Date(state.attendanceTime);
+      // 月/日 形式の日付
+      attendanceDate = `${date.getMonth() + 1}/${date.getDate()}`;
+      fullAttendanceTime = date.toLocaleString('ja-JP');
+    }
+    
     const leavingTime = state.leavingTime ? new Date(state.leavingTime).toLocaleString('ja-JP') : '';
     const totalSeconds = state.totalStayTime || 0;
     const formattedTime = `${Math.floor(totalSeconds / 3600)}時間${Math.floor((totalSeconds % 3600) / 60)}分`;
 
     return [
+      attendanceDate, // 日付を最初の列に
       studentId,
       studentName,
-      attendanceTime,
+      fullAttendanceTime,
       leavingTime,
       totalSeconds.toString(),
       formattedTime
@@ -267,6 +277,7 @@ function generateCSVContent(
 
 /**
  * 既存のCSVデータと新しいCSVデータをマージする関数
+ * 同じ日付と学生IDの組み合わせは新しいデータで上書きする
  */
 function mergeCSVData(existingCsv: string, newCsv: string): string {
   // 既存のCSVと新しいCSVをパース
@@ -279,15 +290,32 @@ function mergeCSVData(existingCsv: string, newCsv: string): string {
   // 既存データと新しいデータをマージ
   const mergedData = [...existingData.data, ...newData.data];
   
-  // 重複を削除（学生IDと出勤日時が同じレコードを削除）
+  // 重複を削除（日付と学生IDの組み合わせが同じレコードは新しいデータで上書き）
   const uniqueRecords: { [key: string]: any } = {};
   mergedData.forEach(record => {
-    const key = `${record['学生ID']}_${record['出勤日時']}`;
+    // キーを日付と学生IDの組み合わせに変更
+    const key = `${record['日付']}_${record['学生ID']}`;
     uniqueRecords[key] = record;
   });
   
   // 一意のレコードを配列に変換
   const finalData = Object.values(uniqueRecords);
+  
+  // 日付でソート (MM/DD形式を考慮したソート)
+  finalData.sort((a, b) => {
+    if (!a['日付'] || !b['日付']) return 0;
+    
+    // 日付をMM/DD形式からDate型に変換してソート
+    const [aMonth, aDay] = a['日付'].split('/').map(Number);
+    const [bMonth, bDay] = b['日付'].split('/').map(Number);
+    
+    // 同じ年と仮定して月で比較
+    if (aMonth !== bMonth) {
+      return aMonth - bMonth;
+    }
+    // 月が同じなら日で比較
+    return aDay - bDay;
+  });
   
   // マージしたデータをCSV形式に変換
   return Papa.unparse({
