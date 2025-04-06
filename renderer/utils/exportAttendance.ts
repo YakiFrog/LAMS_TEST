@@ -417,10 +417,10 @@ function generateCSVContent(records: any[]): string {
 
 /**
  * 既存のCSVデータと新しいCSVデータをマージする関数
- * 同じ日付と学生IDの組み合わせは確実に上書きする
+ * シンプル化したバージョン - 明確なルールに従って上書き
  */
 function mergeCSVData(existingCsv: string, newCsv: string): string {
-  console.log('CSVデータのマージを開始します');
+  console.log('CSVデータのマージを開始します - シンプル化したバージョン');
   
   // 既存のCSVと新しいCSVをパース
   const existingData = Papa.parse(existingCsv, { header: true });
@@ -429,61 +429,104 @@ function mergeCSVData(existingCsv: string, newCsv: string): string {
   // ヘッダー行を取得
   const headers = existingData.meta.fields || ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
   
-  // 日付と学生IDをキーにした辞書を作成
-  const recordsByKey: { [key: string]: any } = {};
+  // 日付と学生IDをキーにしたマップを作成
+  const recordMap = new Map();
   
-  // まず既存データを辞書に格納
-  existingData.data.forEach((record: any) => {
-    if (record['日付'] && record['学生ID']) {
-      const key = `${record['日付']}_${record['学生ID']}`;
-      recordsByKey[key] = record;
-      console.log(`既存データ読み込み: ${key}, 学生名: ${record['学生名']}, 滞在時間: ${record['滞在時間']}`);
-    }
-  });
-  
-  // 次に新しいデータで上書きまたは追加
-  newData.data.forEach((record: any) => {
-    if (record['日付'] && record['学生ID']) {
-      const key = `${record['日付']}_${record['学生ID']}`;
-      
-      // 既存のデータがあるか確認
-      if (recordsByKey[key]) {
-        console.log(`同じキーのデータを発見: ${key}`);
-        console.log(`既存データ: 学生名=${recordsByKey[key]['学生名']}, 滞在時間=${recordsByKey[key]['滞在時間']}`);
-        console.log(`新規データ: 学生名=${record['学生名']}, 滞在時間=${record['滞在時間']}`);
-        
-        // 完全に上書き
-        recordsByKey[key] = record;
-        console.log(`上書き完了: ${key}, 新しい滞在時間=${record['滞在時間']}`);
-      } else {
-        // 既存データがなければ新規追加
-        recordsByKey[key] = record;
-        console.log(`新規データ追加: ${key}, 学生名=${record['学生名']}, 滞在時間=${record['滞在時間']}`);
+  // 既存データをマップに追加
+  if (existingData.data && Array.isArray(existingData.data)) {
+    existingData.data.forEach(record => {
+      if (record['日付'] && record['学生ID']) {
+        const key = `${record['日付']}_${record['学生ID']}`;
+        recordMap.set(key, record);
       }
-    }
-  });
+    });
+  }
   
-  // 辞書からレコードの配列に変換
-  const allRecords = Object.values(recordsByKey);
+  // 新しいデータを処理
+  if (newData.data && Array.isArray(newData.data)) {
+    newData.data.forEach(newRecord => {
+      if (newRecord['日付'] && newRecord['学生ID']) {
+        const key = `${newRecord['日付']}_${newRecord['学生ID']}`;
+        
+        // 既存レコードがあるか確認
+        if (recordMap.has(key)) {
+          const existingRecord = recordMap.get(key);
+          
+          // マージしたレコードを作成
+          const mergedRecord = { ...existingRecord };
+          
+          // 1. 出勤時間は最も早い時間を採用
+          if (existingRecord['出勤日時'] && newRecord['出勤日時']) {
+            try {
+              const existingTime = new Date(existingRecord['出勤日時']);
+              const newTime = new Date(newRecord['出勤日時']);
+              
+              if (newTime < existingTime) {
+                mergedRecord['出勤日時'] = newRecord['出勤日時'];
+                console.log(`${key}: 出勤時間を更新（より早い時間を採用）`);
+              }
+            } catch (e) {
+              console.error('出勤時間比較エラー:', e);
+            }
+          } else if (newRecord['出勤日時'] && !existingRecord['出勤日時']) {
+            mergedRecord['出勤日時'] = newRecord['出勤日時'];
+          }
+          
+          // 2. 退勤時間は最新のものを採用
+          if (existingRecord['退勤日時'] && newRecord['退勤日時']) {
+            try {
+              const existingTime = new Date(existingRecord['退勤日時']);
+              const newTime = new Date(newRecord['退勤日時']);
+              
+              if (newTime > existingTime) {
+                mergedRecord['退勤日時'] = newRecord['退勤日時'];
+                console.log(`${key}: 退勤時間を更新（より遅い時間を採用）`);
+              }
+            } catch (e) {
+              console.error('退勤時間比較エラー:', e);
+            }
+          } else if (newRecord['退勤日時'] && !existingRecord['退勤日時']) {
+            mergedRecord['退勤日時'] = newRecord['退勤日時'];
+          }
+          
+          // 3. 滞在時間は新しいデータを採用（モーダルの値）
+          if (newRecord['滞在時間（秒）']) {
+            mergedRecord['滞在時間（秒）'] = newRecord['滞在時間（秒）'];
+          }
+          
+          if (newRecord['滞在時間']) {
+            mergedRecord['滞在時間'] = newRecord['滞在時間'];
+          }
+          
+          // マージしたレコードをマップに保存
+          recordMap.set(key, mergedRecord);
+          console.log(`${key}: データをマージしました`);
+        } else {
+          // 既存レコードがなければそのまま追加
+          recordMap.set(key, newRecord);
+          console.log(`${key}: 新規データとして追加しました`);
+        }
+      }
+    });
+  }
+  
+  // マップからレコードの配列に変換
+  const allRecords = Array.from(recordMap.values());
   
   // 日付でソート
   allRecords.sort((a, b) => {
     if (!a['日付'] || !b['日付']) return 0;
     
-    // MM/DD形式の日付を解析
     const [aMonth, aDay] = a['日付'].split('/').map(Number);
     const [bMonth, bDay] = b['日付'].split('/').map(Number);
     
-    // 月が異なる場合は月で比較
     if (aMonth !== bMonth) {
       return aMonth - bMonth;
     }
-    
-    // 月が同じなら日で比較
     return aDay - bDay;
   });
   
-  console.log(`マージ完了: ${allRecords.length}件のレコード`);
+  console.log(`マージ完了: 合計${allRecords.length}件のレコード`);
   
   // CSV形式に変換して返す
   return Papa.unparse({

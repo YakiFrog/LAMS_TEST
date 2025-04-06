@@ -160,9 +160,10 @@ export async function exportAttendanceToCSV(
     
     let finalCsvData;
     
+    // 既存ファイルがある場合、内容をマージ
     if (fileExistsResult.exists) {
       try {
-        console.log('既存ファイルが見つかりました。追記モードで処理します。');
+        console.log('既存ファイルが見つかりました。マージモードで処理します。');
         // 既存ファイルを読み込み
         const existingContent = await electronAPI.readFile(filePath);
         
@@ -172,32 +173,76 @@ export async function exportAttendanceToCSV(
           if (parsedExisting.data && parsedExisting.data.length > 0) {
             console.log(`既存ファイルから${parsedExisting.data.length}件のレコードを読み込みました`);
             
-            // 重複を避けるために既存の日付と学生IDの組み合わせをチェック
-            const existingKeys = new Set<string>();
+            // 日付と学生IDの組み合わせをキーにしてマージ
+            const recordMap = new Map();
+            
+            // 既存データをマップに追加
             parsedExisting.data.forEach((record: any) => {
               if (record['日付'] && record['学生ID']) {
                 const key = `${record['日付']}_${record['学生ID']}`;
-                existingKeys.add(key);
+                recordMap.set(key, record);
+                console.log(`既存データ読み込み: ${key}`);
               }
             });
             
-            // 既存データに新しいデータを追加（重複するキーを持つレコードはスキップ）
-            const newRecordsToAdd = newAttendanceRecords.filter(record => {
-              const key = `${record['日付']}_${record['学生ID']}`;
-              if (existingKeys.has(key)) {
-                console.log(`重複レコードをスキップ: ${key}`);
-                return false; // 重複レコードはスキップ
+            // 新しいデータを追加または上書き
+            newAttendanceRecords.forEach(record => {
+              if (record['日付'] && record['学生ID']) {
+                const key = `${record['日付']}_${record['学生ID']}`;
+                
+                if (recordMap.has(key)) {
+                  console.log(`重複レコード検出 - キー: ${key} を上書きします`);
+                  
+                  // 既存レコードと新しいレコードを取得
+                  const existingRecord = recordMap.get(key);
+                  
+                  // 出勤時間は最も早い時間を保持
+                  if (existingRecord['出勤日時'] && record['出勤日時']) {
+                    const existingTime = new Date(existingRecord['出勤日時']);
+                    const newTime = new Date(record['出勤日時']);
+                    
+                    if (newTime < existingTime) {
+                      existingRecord['出勤日時'] = record['出勤日時'];
+                    }
+                  } else if (!existingRecord['出勤日時'] && record['出勤日時']) {
+                    existingRecord['出勤日時'] = record['出勤日時'];
+                  }
+                  
+                  // 退勤時間は最も遅い時間を保持
+                  if (existingRecord['退勤日時'] && record['退勤日時']) {
+                    const existingTime = new Date(existingRecord['退勤日時']);
+                    const newTime = new Date(record['退勤日時']);
+                    
+                    if (newTime > existingTime) {
+                      existingRecord['退勤日時'] = record['退勤日時'];
+                    }
+                  } else if (!existingRecord['退勤日時'] && record['退勤日時']) {
+                    existingRecord['退勤日時'] = record['退勤日時'];
+                  }
+                  
+                  // 滞在時間は新しいデータを採用
+                  if (record['滞在時間（秒）']) {
+                    existingRecord['滞在時間（秒）'] = record['滞在時間（秒）'];
+                  }
+                  
+                  if (record['滞在時間']) {
+                    existingRecord['滞在時間'] = record['滞在時間'];
+                  }
+                  
+                  // 学生名も更新
+                  if (record['学生名']) {
+                    existingRecord['学生名'] = record['学生名'];
+                  }
+                } else {
+                  // 新規追加
+                  console.log(`新規レコード追加: ${key}`);
+                  recordMap.set(key, record);
+                }
               }
-              return true; // 新規レコードを追加
             });
             
-            console.log(`追加する新規レコード: ${newRecordsToAdd.length}件`);
-            
-            // ヘッダー行
-            const headers = parsedExisting.meta.fields || ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
-            
-            // 既存データの下に新しいデータを追加
-            const combinedData = [...parsedExisting.data, ...newRecordsToAdd];
+            // マップからレコードの配列に変換
+            const combinedData = Array.from(recordMap.values());
             
             // 日付でソート
             combinedData.sort((a: any, b: any) => {
@@ -213,10 +258,13 @@ export async function exportAttendanceToCSV(
             });
             
             // CSV形式に変換
+            const headers = parsedExisting.meta.fields || ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
             finalCsvData = Papa.unparse({
               fields: headers,
               data: combinedData
             });
+            
+            console.log(`マージ完了: ${combinedData.length}件のレコード`);
           } else {
             console.log('既存ファイルが空または無効です。新しいデータのみで保存します。');
             finalCsvData = generateCsvFromRecords(newAttendanceRecords);
