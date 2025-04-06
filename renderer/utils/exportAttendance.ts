@@ -354,6 +354,8 @@ function classifyDataByMonth(
     const totalSeconds = state.totalStayTime || 0;
     const formattedTime = `${Math.floor(totalSeconds / 3600)}時間${Math.floor((totalSeconds % 3600) / 60)}分`;
     
+    console.log(`データ出力 [ID:${studentId}]: 滞在時間=${formattedTime} (${totalSeconds}秒)`);
+    
     // レコードの作成
     const record = {
       '日付': attendanceDate,
@@ -415,49 +417,77 @@ function generateCSVContent(records: any[]): string {
 
 /**
  * 既存のCSVデータと新しいCSVデータをマージする関数
- * 同じ日付と学生IDの組み合わせは新しいデータで上書きする
+ * 同じ日付と学生IDの組み合わせは確実に上書きする
  */
 function mergeCSVData(existingCsv: string, newCsv: string): string {
+  console.log('CSVデータのマージを開始します');
+  
   // 既存のCSVと新しいCSVをパース
   const existingData = Papa.parse(existingCsv, { header: true });
   const newData = Papa.parse(newCsv, { header: true });
   
   // ヘッダー行を取得
-  const headers = existingData.meta.fields || [];
+  const headers = existingData.meta.fields || ['日付', '学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
   
-  // 既存データと新しいデータをマージ
-  const mergedData = [...existingData.data, ...newData.data];
+  // 日付と学生IDをキーにした辞書を作成
+  const recordsByKey: { [key: string]: any } = {};
   
-  // 重複を削除（日付と学生IDの組み合わせが同じレコードは新しいデータで上書き）
-  const uniqueRecords: { [key: string]: any } = {};
-  mergedData.forEach(record => {
-    // キーを日付と学生IDの組み合わせに変更
-    const key = `${record['日付']}_${record['学生ID']}`;
-    uniqueRecords[key] = record;
+  // まず既存データを辞書に格納
+  existingData.data.forEach((record: any) => {
+    if (record['日付'] && record['学生ID']) {
+      const key = `${record['日付']}_${record['学生ID']}`;
+      recordsByKey[key] = record;
+      console.log(`既存データ読み込み: ${key}, 学生名: ${record['学生名']}, 滞在時間: ${record['滞在時間']}`);
+    }
   });
   
-  // 一意のレコードを配列に変換
-  const finalData = Object.values(uniqueRecords);
+  // 次に新しいデータで上書きまたは追加
+  newData.data.forEach((record: any) => {
+    if (record['日付'] && record['学生ID']) {
+      const key = `${record['日付']}_${record['学生ID']}`;
+      
+      // 既存のデータがあるか確認
+      if (recordsByKey[key]) {
+        console.log(`同じキーのデータを発見: ${key}`);
+        console.log(`既存データ: 学生名=${recordsByKey[key]['学生名']}, 滞在時間=${recordsByKey[key]['滞在時間']}`);
+        console.log(`新規データ: 学生名=${record['学生名']}, 滞在時間=${record['滞在時間']}`);
+        
+        // 完全に上書き
+        recordsByKey[key] = record;
+        console.log(`上書き完了: ${key}, 新しい滞在時間=${record['滞在時間']}`);
+      } else {
+        // 既存データがなければ新規追加
+        recordsByKey[key] = record;
+        console.log(`新規データ追加: ${key}, 学生名=${record['学生名']}, 滞在時間=${record['滞在時間']}`);
+      }
+    }
+  });
   
-  // 日付でソート (MM/DD形式を考慮したソート)
-  finalData.sort((a, b) => {
+  // 辞書からレコードの配列に変換
+  const allRecords = Object.values(recordsByKey);
+  
+  // 日付でソート
+  allRecords.sort((a, b) => {
     if (!a['日付'] || !b['日付']) return 0;
     
-    // 日付をMM/DD形式からDate型に変換してソート
+    // MM/DD形式の日付を解析
     const [aMonth, aDay] = a['日付'].split('/').map(Number);
     const [bMonth, bDay] = b['日付'].split('/').map(Number);
     
-    // 同じ年と仮定して月で比較
+    // 月が異なる場合は月で比較
     if (aMonth !== bMonth) {
       return aMonth - bMonth;
     }
+    
     // 月が同じなら日で比較
     return aDay - bDay;
   });
   
-  // マージしたデータをCSV形式に変換
+  console.log(`マージ完了: ${allRecords.length}件のレコード`);
+  
+  // CSV形式に変換して返す
   return Papa.unparse({
     fields: headers,
-    data: finalData
+    data: allRecords
   });
 }

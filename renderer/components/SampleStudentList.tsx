@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Wrap, WrapItem, Text, Badge, useToast } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
-import { getCurrentTime, resetTime } from '../utils/timeManager';
+import { getCurrentTime, resetTime, formatStayTime } from '../utils/timeManager';
 
 interface Student {
   id: string;
@@ -279,6 +279,7 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               if (attendanceTime) { // 出勤時刻が存在する場合、滞在時間を計算
                 const duration = Math.floor((threshold.getTime() - new Date(attendanceTime).getTime()) / 1000);
                 state.totalStayTime += duration;
+                console.log(`自動退勤: 学生ID ${studentId}, 滞在時間追加: ${duration}秒, 合計: ${state.totalStayTime}秒 (${formatStayTime(state.totalStayTime)})`);
               }
               state.isAttending = false;
               state.leavingTime = threshold; // 22:30時点を退勤時刻とする

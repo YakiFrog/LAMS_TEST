@@ -175,6 +175,18 @@ export function hasDateChanged(oldDate: Date, newDate: Date): boolean {
 }
 
 /**
+ * 滞在時間を秒単位から「○時間○分」形式の文字列に変換
+ * @param totalSeconds 滞在時間（秒）
+ * @returns フォーマットされた滞在時間文字列
+ */
+export function formatStayTime(totalSeconds: number): string {
+  if (!totalSeconds && totalSeconds !== 0) return "未登録";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return `${hours}時間${minutes}分`;
+}
+
+/**
  * 指定した時間が22:30以降かどうかを確認する
  * @param date 確認する日時
  * @returns 22:30以降ならtrue、そうでなければfalse

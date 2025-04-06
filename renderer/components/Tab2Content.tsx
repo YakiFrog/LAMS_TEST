@@ -38,7 +38,7 @@ import {
 } from '@chakra-ui/react';
 import { SearchIcon, ChevronDownIcon, TimeIcon } from '@chakra-ui/icons';
 import { FaCalendarAlt, FaHistory } from 'react-icons/fa';
-import { getCurrentTime, isTimeOverrideEnabled, getOverrideTime } from '../utils/timeManager';
+import { getCurrentTime, isTimeOverrideEnabled, getOverrideTime, formatStayTime } from '../utils/timeManager';
 
 const Tab2Content: React.FC = () => {
   const [savedAttendanceStates, setSavedAttendanceStates] = useState<any>(null);
@@ -123,7 +123,7 @@ const Tab2Content: React.FC = () => {
             leavingTimeFull: leavingDate,
             isAttending: typedState.isAttending,
             totalStayTime: typedState.totalStayTime || 0,
-            totalStayTimeFormatted: formatTime(typedState.totalStayTime || 0),
+            totalStayTimeFormatted: formatStayTime(typedState.totalStayTime || 0),
           });
         }
       }
@@ -139,9 +139,8 @@ const Tab2Content: React.FC = () => {
   };
 
   const formatTime = (totalSeconds: number) => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}時間${minutes}分`;
+    // 互換性のため formatStayTime を呼び出す
+    return formatStayTime(totalSeconds);
   };
 
   useEffect(() => {

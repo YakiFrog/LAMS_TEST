@@ -28,7 +28,7 @@ import {
 } from '@chakra-ui/react';
 import { keyframes, Global } from '@emotion/react';
 import Papa from 'papaparse';
-import { getCurrentTime, getJapanTime } from '../utils/timeManager';
+import { getCurrentTime, getJapanTime, formatStayTime } from '../utils/timeManager';
 import { fetchCurrentMonthAttendance } from '../utils/attendanceAnalyzer';
 
 // パルスアニメーションをキーフレームとして定義
@@ -500,12 +500,8 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
       setLeavingTimeStr(
         leavingTime ? leavingTime.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo' }) : null
       );
-      // 時間と分で表示（秒→時間換算）
-      setTotalStayTimeStr(
-        totalStayTime
-          ? `${Math.floor(totalStayTime / 3600)}時間 ${Math.floor((totalStayTime % 3600) / 60)}分`
-          : null
-      );
+      // formatStayTime 関数を使用して滞在時間を表示
+      setTotalStayTimeStr(formatStayTime(totalStayTime));
     }
   }, [student, attendanceStates]);
 
