@@ -63,15 +63,19 @@ export function resetTime(date: Date): Date {
  * @param dateTime 設定する日時
  */
 export function setOverrideTime(dateTime: Date | null): void {
-  currentTimeOverride = dateTime ? new Date(dateTime) : null;
-  useOverrideTime = dateTime !== null;
-  
-  // ローカルストレージに保存して永続化
   if (typeof window !== 'undefined') {
-    if (useOverrideTime && currentTimeOverride) {
-      localStorage.setItem('timeOverride', currentTimeOverride.toISOString());
+    if (dateTime) {
+      // 時間を上書き
+      currentTimeOverride = dateTime;
+      useOverrideTime = true;
+      // ローカルストレージに保存
+      localStorage.setItem('timeOverride', dateTime.toISOString());
       localStorage.setItem('useTimeOverride', 'true');
     } else {
+      // 上書きを解除
+      currentTimeOverride = null;
+      useOverrideTime = false;
+      // ローカルストレージから削除
       localStorage.removeItem('timeOverride');
       localStorage.removeItem('useTimeOverride');
     }

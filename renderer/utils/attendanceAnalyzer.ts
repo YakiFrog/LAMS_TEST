@@ -68,6 +68,115 @@ export async function fetchCurrentMonthAttendance(studentId: string): Promise<{
 }
 
 /**
+ * 学生の年間出勤日数を取得する
+ * @param studentId 学生ID
+ * @returns 年間の出勤日数
+ */
+export async function getYearlyAttendanceDays(studentId: string): Promise<number> {
+  try {
+    // Electron APIが利用可能かチェック
+    if (typeof window === 'undefined' || !window.electron) {
+      console.log('Electron APIが利用できません。ローカルストレージの情報のみ使用します。');
+      return getAttendanceDaysFromLocalStorage(studentId);
+    }
+
+    const exportPath = localStorage.getItem('exportPath');
+    if (!exportPath) {
+      console.log('エクスポートパスが設定されていません。ローカルストレージの情報のみ使用します。');
+      return getAttendanceDaysFromLocalStorage(studentId);
+    }
+
+    const today = getCurrentTime();
+    const currentYear = today.getFullYear();
+    
+    // 年間の出勤日を追跡するSet（日付の重複を避ける）
+    const uniqueDatesSet = new Set<string>();
+
+    // 現在の年のすべての月のCSVファイルを確認
+    for (let month = 1; month <= 12; month++) {
+      const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+      const fileName = `attendance_${monthKey}.csv`;
+      const filePath = `${exportPath}/${fileName}`;
+      
+      try {
+        // ファイルが存在するかチェック
+        const exists = await window.electron.fileExists(filePath);
+        
+        if (exists.exists) {
+          const csvContent = await window.electron.readFile(filePath);
+          
+          // CSVをパース
+          const parsedData = Papa.parse(csvContent, { header: true });
+          
+          if (parsedData.data && Array.isArray(parsedData.data)) {
+            // 学生IDでフィルタリング
+            const studentRecords = parsedData.data.filter((record: any) => 
+              record['学生ID'] === studentId && record['日付']
+            );
+            
+            // ユニークな日付を追加
+            studentRecords.forEach((record: any) => {
+              if (record['日付']) {
+                uniqueDatesSet.add(record['日付']);
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`${filePath} の読み込み中にエラー:`, error);
+      }
+    }
+    
+    // ローカルストレージの情報も追加
+    const localStorageDates = getLocalStorageDates(studentId);
+    localStorageDates.forEach(date => uniqueDatesSet.add(date));
+    
+    return uniqueDatesSet.size;
+  } catch (error) {
+    console.error('出勤日数計算エラー:', error);
+    return 0;
+  }
+}
+
+/**
+ * ローカルストレージから学生の出勤日を取得
+ */
+function getAttendanceDaysFromLocalStorage(studentId: string): number {
+  try {
+    const dates = getLocalStorageDates(studentId);
+    return dates.length;
+  } catch (error) {
+    console.error('ローカルストレージからの出勤日数取得エラー:', error);
+    return 0;
+  }
+}
+
+/**
+ * ローカルストレージから学生の出勤日の配列を取得
+ */
+function getLocalStorageDates(studentId: string): string[] {
+  const attendanceStates = JSON.parse(localStorage.getItem('attendanceStates') || '{}');
+  const studentState = attendanceStates[studentId];
+  const uniqueDates = new Set<string>();
+  
+  if (studentState) {
+    // 出勤日を追加
+    if (studentState.attendanceTime) {
+      const date = new Date(studentState.attendanceTime);
+      uniqueDates.add(`${date.getMonth() + 1}/${date.getDate()}`);
+    }
+    
+    // 退勤日を追加
+    if (studentState.leavingTime) {
+      const date = new Date(studentState.leavingTime);
+      uniqueDates.add(`${date.getMonth() + 1}/${date.getDate()}`);
+    }
+  }
+  
+  return Array.from(uniqueDates);
+}
+
+/**
  * 現在の曜日のインデックスを取得 (0: 月曜, ..., 6: 日曜)
  */
 function getCurrentDayIndex(): number {
