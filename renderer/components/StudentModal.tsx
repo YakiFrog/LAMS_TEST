@@ -20,6 +20,7 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import { keyframes, Global } from '@emotion/react';
+import Papa from 'papaparse';
 import { getCurrentTime, getJapanTime } from '../utils/timeManager';
 import { fetchCurrentMonthAttendance } from '../utils/attendanceAnalyzer';
 
@@ -57,12 +58,23 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
     const loadAttendanceData = async () => {
       try {
         setIsLoading(true);
+        // 基本的な出勤データを取得
         const result = await fetchCurrentMonthAttendance(studentId);
-        setAttendanceDays(result.attendanceDays);
+        let detectedAttendanceDays = [...result.attendanceDays];
         setCurrentDayIndex(result.currentDayIndex);
         
         // 直近の出勤曜日の日付を計算
-        calculateRecentWeekdayDates();
+        const dates = calculateRecentWeekdayDates();
+        
+        // CSVファイルからの出勤履歴チェック
+        const csvAttendanceDays = await loadAttendanceFromCSV(studentId, dates);
+        if (csvAttendanceDays.length > 0) {
+          // 既存の出勤日と CSV からの出勤日をマージ
+          const mergedDays = Array.from(new Set([...detectedAttendanceDays, ...csvAttendanceDays]));
+          detectedAttendanceDays = mergedDays;
+        }
+        
+        setAttendanceDays(detectedAttendanceDays);
       } catch (err) {
         console.error('出勤データ読み込みエラー:', err);
         setError('出勤データの読み込みに失敗しました');
@@ -70,9 +82,107 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
         setIsLoading(false);
       }
     };
+
+    // CSV ファイルから出勤履歴を読み込む関数
+    const loadAttendanceFromCSV = async (
+      studentId: string,
+      weekdayDates: Record<number, string>
+    ): Promise<number[]> => {
+      // Electron API が利用可能かチェック
+      if (typeof window === 'undefined' || !window.electron) {
+        console.log('Electron API が利用できません。CSV ファイルの読み込みをスキップします。');
+        return [];
+      }
+
+      const exportPath = localStorage.getItem('exportPath');
+      if (!exportPath) {
+        console.log('エクスポートパスが設定されていません。CSV ファイルの読み込みをスキップします。');
+        return [];
+      }
+
+      try {
+        const today = getCurrentTime();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+        
+        // 必要な月の CSV ファイルを特定
+        const neededMonths = new Set<string>();
+        
+        // 各曜日の日付から必要なファイルを特定
+        Object.values(weekdayDates).forEach(dateStr => {
+          const [month, day] = dateStr.split('/').map(Number);
+          // 年は現在の年と仮定
+          if (!isNaN(month) && !isNaN(day)) {
+            const fileKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+            neededMonths.add(fileKey);
+          }
+        });
+        
+        console.log('読み込む必要のある月:', Array.from(neededMonths));
+        
+        // 各月の CSV ファイルを読み込み、学生の出勤データを抽出
+        const attendanceDays = new Set<number>();
+        
+        for (const monthKey of Array.from(neededMonths)) {
+          const fileName = `attendance_${monthKey}.csv`;
+          const filePath = `${exportPath}/${fileName}`;
+          
+          console.log(`CSVファイルを確認: ${filePath}`);
+          
+          // ファイルが存在するかチェック
+          const exists = await window.electron.fileExists(filePath);
+          
+          if (exists.exists) {
+            console.log(`CSVファイルが見つかりました: ${filePath}`);
+            const csvContent = await window.electron.readFile(filePath);
+            
+            if (csvContent) {
+              // CSV をパース
+              const parsedData = Papa.parse(csvContent, { header: true });
+              
+              if (parsedData.data && Array.isArray(parsedData.data)) {
+                // 学生IDでフィルタリング
+                const studentRecords = parsedData.data.filter((record: any) => 
+                  record['学生ID'] === studentId && record['日付']
+                );
+                
+                console.log(`学生ID ${studentId} のレコード数:`, studentRecords.length);
+                
+                // 各レコードの日付から曜日を特定
+                studentRecords.forEach((record: any) => {
+                  try {
+                    const dateStr = record['日付'];
+                    if (!dateStr) return;
+                    
+                    const [month, day] = dateStr.split('/').map(Number);
+                    if (isNaN(month) || isNaN(day)) return;
+                    
+                    // 日付から曜日を取得
+                    const date = new Date(currentYear, month - 1, day);
+                    let weekday = date.getDay(); // 0: 日曜, 1: 月曜, ..., 6: 土曜
+                    weekday = weekday === 0 ? 6 : weekday - 1; // 0: 月曜, ..., 6: 日曜に変換
+                    
+                    attendanceDays.add(weekday);
+                  } catch (e) {
+                    console.error('日付解析エラー:', e);
+                  }
+                });
+              }
+            }
+          } else {
+            console.log(`CSVファイルが見つかりません: ${filePath}`);
+          }
+        }
+        
+        return Array.from(attendanceDays);
+      } catch (error) {
+        console.error('CSV ファイル読み込みエラー:', error);
+        return [];
+      }
+    };
     
     // 直近の曜日ごとの日付を計算する関数
-    const calculateRecentWeekdayDates = () => {
+    const calculateRecentWeekdayDates = (): Record<number, string> => {
       // 時間操作モードを考慮した現在時刻を取得
       const today = getCurrentTime();
       const currentWeekday = (today.getDay() + 6) % 7; // 0: 月曜, ..., 6: 日曜
@@ -96,6 +206,7 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
       }
       
       setRecentWeekdayDates(dates);
+      return dates;
     };
     
     if (studentId) {
