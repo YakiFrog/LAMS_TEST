@@ -401,7 +401,7 @@ const Tab1Content: React.FC = () => {
         py={3}
         px={10}
         borderRadius="full"
-        onClick={() => onOpen()}
+        onClick={handleClockClick} // リロード処理を実行
         cursor="pointer"
         transition="transform 0.1s ease-in-out"
         animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
@@ -458,7 +458,7 @@ const Tab1Content: React.FC = () => {
             color="white"
             _hover={{ bg: "rgba(255,255,255,0.2)" }}
             onClick={(e) => {
-              e.stopPropagation();
+              e.stopPropagation(); // ここが重要：親要素へのイベント伝播を停止
               onOpen();
             }}
           />
