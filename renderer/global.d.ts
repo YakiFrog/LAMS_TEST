@@ -26,6 +26,9 @@ interface Window {
   // Next.js開発モード用の変数
   __NEXT_DATA__?: any;
   
+  // 曜日ごとの日付情報
+  weekdayDatesInfo?: Record<number, string[]>;
+  
   // グローバルステートを明示的に定義
   global?: typeof globalThis;
   

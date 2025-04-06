@@ -22,6 +22,11 @@ export function getStudentsMap(): Record<string, Student> {
   }
   
   try {
+    // ブラウザ環境かチェック
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return {};
+    }
+    
     const storedStudents = localStorage.getItem('students');
     if (storedStudents) {
       const parsedStudents = JSON.parse(storedStudents) as Student[];

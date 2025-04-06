@@ -45,6 +45,8 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   const [currentDayIndex, setCurrentDayIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // 曜日ごとの直近の日付情報を保持する状態
+  const [recentWeekdayDates, setRecentWeekdayDates] = useState<Record<number, string>>({});
   
   const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
   
@@ -58,12 +60,42 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
         const result = await fetchCurrentMonthAttendance(studentId);
         setAttendanceDays(result.attendanceDays);
         setCurrentDayIndex(result.currentDayIndex);
+        
+        // 直近の出勤曜日の日付を計算
+        calculateRecentWeekdayDates();
       } catch (err) {
         console.error('出勤データ読み込みエラー:', err);
         setError('出勤データの読み込みに失敗しました');
       } finally {
         setIsLoading(false);
       }
+    };
+    
+    // 直近の曜日ごとの日付を計算する関数
+    const calculateRecentWeekdayDates = () => {
+      // 時間操作モードを考慮した現在時刻を取得
+      const today = getCurrentTime();
+      const currentWeekday = (today.getDay() + 6) % 7; // 0: 月曜, ..., 6: 日曜
+      
+      // 各曜日の直近の日付を計算
+      const dates: Record<number, string> = {};
+      
+      // 今日から過去7日間をさかのぼって、各曜日の直近の日付を特定
+      for (let i = 0; i < 7; i++) {
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() - i);
+        
+        const targetWeekday = (targetDate.getDay() + 6) % 7; // 0: 月曜, ..., 6: 日曜
+        
+        // その曜日の日付がまだ記録されていなければ記録（より直近のものを優先）
+        if (!dates[targetWeekday]) {
+          const month = targetDate.getMonth() + 1;
+          const day = targetDate.getDate();
+          dates[targetWeekday] = `${month}/${day}`;
+        }
+      }
+      
+      setRecentWeekdayDates(dates);
     };
     
     if (studentId) {
@@ -91,17 +123,23 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   return (
     <VStack spacing={2} align="center" w="100%">
       <Text fontSize="md" fontWeight="bold" mb={1}>
-        今月の出勤曜日
+        直近の出勤曜日
       </Text>
       <HStack spacing={3} justify="center">
         {weekdays.map((day, index) => {
           const isAttendance = attendanceDays.includes(index);
           const isToday = index === currentDayIndex;
           
+          // 直近の日付を取得
+          const recentDate = recentWeekdayDates[index] || '日付なし';
+          
+          // ツールチップのラベルを作成
+          const tooltipLabel = `${recentDate}：${isAttendance ? '出勤あり' : '出勤なし'}${isToday ? ' (今日)' : ''}`;
+          
           return (
             <Tooltip
               key={index}
-              label={`${day}曜日: ${isAttendance ? '出勤あり' : '出勤なし'}${isToday ? ' (今日)' : ''}`}
+              label={tooltipLabel}
               placement="top"
               hasArrow
             >
@@ -114,10 +152,9 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                 _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
                 transition="all 0.3s"
                 boxShadow={isToday ? "0 0 0 3px teal.400" : "none"}
-                borderWidth={isToday ? "4px" : "0"} // 2px から 4px に変更してより太くした
+                borderWidth={isToday ? "4px" : "0"}
                 borderColor="teal.400"
                 position="relative"
-                // 今日の曜日に光るエフェクトを追加
                 _after={isToday ? {
                   content: '""',
                   position: 'absolute',
@@ -126,7 +163,7 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                   right: '-4px',
                   bottom: '-4px',
                   borderRadius: 'full',
-                  borderWidth: '3px', // こちらも 2px から 3px に変更して太くした
+                  borderWidth: '3px',
                   borderColor: 'teal.400',
                   animation: pulseAnimation
                 } : {}}

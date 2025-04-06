@@ -35,13 +35,32 @@ const getElectronAPI = () => {
       return window.electron;
     }
     console.log('Electron API not found, using mock implementation');
-    // 開発モード用のモックAPIを返す
+    // 開発モード用のモックAPIを返す - モックファイルシステムを模倣
+    const mockFiles = {};
     return {
       isElectron: false,
       selectDirectory: async () => ({ canceled: false, filePaths: ['/mock/path'] }),
-      saveFile: async (options: any) => ({ success: true, filePath: options.filePath }),
-      fileExists: async (filePath: string) => ({ exists: false }),
-      readFile: async (filePath: string) => ''
+      saveFile: async (options: any) => {
+        // ファイルをモックストレージに保存
+        mockFiles[options.filePath] = options.data;
+        console.log(`モックファイル保存: ${options.filePath}`);
+        return { success: true, filePath: options.filePath };
+      },
+      fileExists: async (filePath: string) => {
+        // モックストレージでファイルの存在をチェック
+        const exists = !!mockFiles[filePath];
+        console.log(`モックファイル存在チェック: ${filePath} -> ${exists ? '存在します' : '存在しません'}`);
+        return { exists };
+      },
+      readFile: async (filePath: string) => {
+        // モックストレージからファイルを読み込み
+        if (mockFiles[filePath]) {
+          console.log(`モックファイル読み込み: ${filePath}`);
+          return mockFiles[filePath];
+        }
+        console.log(`モックファイル読み込み失敗: ${filePath} (ファイルが存在しません)`);
+        return '';
+      }
     };
   }
   console.log('Window object not available (SSR context)');
