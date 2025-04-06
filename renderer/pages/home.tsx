@@ -107,63 +107,63 @@ export default function HomePage() {
     <Box
       position="fixed"
       bottom="6%"
-      right="4%"
+      right="5%"
       bg="red.500"
       color="white"
-      borderRadius="3xl"
+      borderRadius="2xl"
       fontWeight="bold"
-      fontSize="3xl"
+      fontSize="2xl"
       width="auto"
       textAlign="center"
       zIndex={9999}
-      px={7}
-      py={2}
+      px={5}
+      py={1.5}
       transform="rotate(-20deg)"
       letterSpacing="0.08em"
       boxShadow="0 4px 6px rgb(171, 3, 3), inset 0 4px 6px rgba(250, 249, 157, 0.61)"
       animation={animation}
       fontFamily="'Yusei Magic', sans-serif"
       onClick={() => {
-        const commentElement = document.getElementById('demo-comment');
-        if (commentElement) {
-          commentElement.style.opacity = '1';
-          setTimeout(() => {
-            commentElement.style.opacity = '0';
-          }, 2000);
-        }
+      const commentElement = document.getElementById('demo-comment');
+      if (commentElement) {
+        commentElement.style.opacity = '1';
+        setTimeout(() => {
+        commentElement.style.opacity = '0';
+        }, 2000);
+      }
       }}
       cursor="pointer"
       _hover={{ transform: "rotate(-20deg) scale(1.05)" }}
       transition="transform 0.2s"
     >
       <Box
-        id="demo-comment"
-        position="absolute"
-        bottom="110%"
-        left="50%"
-        transform="translateX(-50%)"
-        bg="rgba(0,0,0,0.7)"
-        color="white"
-        py={1}
-        px={3}
-        borderRadius="md"
-        opacity="0"
-        transition="opacity 0.3s"
-        fontSize="sm"
-        whiteSpace="nowrap"
+      id="demo-comment"
+      position="absolute"
+      bottom="110%"
+      left="50%"
+      transform="translateX(-50%)"
+      bg="rgba(0,0,0,0.7)"
+      color="white"
+      py={1}
+      px={3}
+      borderRadius="md"
+      opacity="0"
+      transition="opacity 0.3s"
+      fontSize="sm"
+      whiteSpace="nowrap"
       >
-        {`${pkg.versionDescription}`}
+      {`${pkg.versionDescription}`}
       </Box>
       試作版
       <Box
-        fontSize="md"
-        fontWeight="normal"
-        mt={0}
-        letterSpacing="normal"
-        fontFamily="sans-serif"
-        px={8}
+      fontSize="xs"
+      fontWeight="normal"
+      mt={0}
+      letterSpacing="normal"
+      fontFamily="sans-serif"
+      px={4}
       >
-        {`v${pkg.version}`}
+      {`v${pkg.version}`}
       </Box>
     </Box>
     </Box>

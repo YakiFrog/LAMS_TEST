@@ -610,9 +610,29 @@ const Tab1Content: React.FC = () => {
 
       {/* エクスポートボタン */}
       <Button
-        position="absolute"
-        bottom="20px"
-        right="20px"
+        position="fixed"
+        bottom="2.5%"
+        left="50%"
+        transform="translateX(-50%)"
+        width="auto"
+        fontSize="lg"
+        fontWeight="bold"
+        px={8}
+        py={6}
+        borderRadius="full"
+        bg="purple.600"
+        color="white"
+        _hover={{ bg: "purple.700" }}
+        _active={{ bg: "purple.800" }}
+        _focus={{ boxShadow: "outline" }}
+        animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
+        transformOrigin="bottom"
+        filter="drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6))"
+        fontFamily="Arial, sans-serif"
+        mx="auto"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         colorScheme="purple"
         leftIcon={<DownloadIcon />}
         onClick={handleManualExport}
@@ -622,7 +642,7 @@ const Tab1Content: React.FC = () => {
         boxShadow="lg"
         isDisabled={isExporting}
       >
-        出勤データをエクスポート
+        今月の出勤データを手動でエクスポート<Text fontSize="sm">（日付変われば自動エクスポート）</Text>
       </Button>
     </Box>
   );
