@@ -1,7 +1,10 @@
 import { ChakraProvider } from '@chakra-ui/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createContext } from 'react'
 import theme from '../lib/theme'
 import { AppProps } from 'next/app'
+
+// クライアント状態を共有するためのコンテキスト作成
+export const ClientContext = createContext(false);
 
 function MyApp({ Component, pageProps }: AppProps) {
   // クライアントサイドでのみレンダリングを行うための状態
@@ -27,7 +30,9 @@ function MyApp({ Component, pageProps }: AppProps) {
   // クライアントサイドでの完全なレンダリング
   return (
     <ChakraProvider theme={theme}>
-      <Component {...pageProps} />
+      <ClientContext.Provider value={isClient}>
+        <Component {...pageProps} />
+      </ClientContext.Provider>
     </ChakraProvider>
   )
 }

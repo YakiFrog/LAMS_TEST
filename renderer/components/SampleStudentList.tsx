@@ -31,8 +31,8 @@ interface Props {
 }
 
 // 学生パネルサイズを計算するための定数
-const MIN_SCALE = 0.75;   // 最小サイズ倍率をより小さく（0.9から0.7に）
-const MAX_SCALE = 1.8;   // 最大サイズ倍率を少し大きく（1.7から1.8に）
+const MIN_SCALE = 0.7;   // 最小サイズ倍率をより小さく（0.9から0.7に）
+const MAX_SCALE = 1.7;   // 最大サイズ倍率を少し大きく（1.7から1.8に）
 const BASE_WIDTH = 150;  // 基本幅を大きく（120から150に）
 const BASE_HEIGHT = 60;  // 基本高さ
 const CHAR_WIDTH = 22;   // 1文字あたりの幅（ピクセル）を増加
@@ -98,6 +98,12 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
   const calculateScale = (studentId: string): number => {
     const days = attendanceDaysMap[studentId] || 0;
     
+    // 出勤日数が0の場合は最小スケール
+    if (days === 0) {
+      return MIN_SCALE;
+    }
+    
+    // 出勤日数が1以上の場合、スケールを適用する
     // 全学生の平均値を計算（過剰なスケーリングを防ぐため）
     const totalStudents = students.length || 1;
     const totalDays = Object.values(attendanceDaysMap).reduce((sum, days) => sum + days, 0);
@@ -107,13 +113,20 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
     const adjustmentFactor = Math.max(1, averageDays / 20); // 15から20に変更（差をより強調）
     
     // 日数が多いほど大きなスケール値を返す（MIN_SCALEからMAX_SCALEの範囲）
-    if (maxAttendanceDays <= 1) return MIN_SCALE;
+    if (maxAttendanceDays <= 1) {
+      // 最大出勤日数が1以下の場合、出勤があれば最小値と最大値の中間のスケール
+      return MIN_SCALE + ((MAX_SCALE - MIN_SCALE) * 0.4);
+    }
+    
+    // 1日でも出勤していれば最小でもMIN_SCALEよりも大きく始まるように補正
+    // 出勤日数が1の場合でも初期値を高めに設定
+    const baseIncrement = (MAX_SCALE - MIN_SCALE) * 0.3; // 1日目から30%増加
     
     // スケールを計算するが、調整係数で抑制 - 累乗を加えて差を強調
     const dayRatio = days / maxAttendanceDays;
     // 比率を累乗することで差を非線形に強調（出勤日数の少ない学生はより小さく）
-    const enhancedRatio = Math.pow(dayRatio, 1.2);
-    const rawScale = MIN_SCALE + ((MAX_SCALE - MIN_SCALE) * enhancedRatio);
+    const enhancedRatio = Math.pow(dayRatio, 1.1); // 指数を1.2から1.1に少し緩和
+    const rawScale = MIN_SCALE + baseIncrement + ((MAX_SCALE - MIN_SCALE - baseIncrement) * enhancedRatio);
     
     // ベースとなるスケール値を少し高めに設定してメリハリを強調
     return MIN_SCALE + ((rawScale - MIN_SCALE) / adjustmentFactor);
@@ -515,12 +528,12 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                   
                   <Text 
                     fontSize={fontSize} 
-                    textAlign="center" // 左寄せから中央揃えに変更
+                    textAlign="center"
                     width="100%" 
-                    overflow="hidden" 
-                    textOverflow="ellipsis"
-                    whiteSpace="nowrap" // 改行を防止
-                    color="#131113" // すべての学生の名前の色を黒に統一
+                    overflow="visible"
+                    textOverflow="clip"
+                    whiteSpace="nowrap" // 改行を許可せず、1行で表示
+                    color="#131113"
                   >
                     {student.name}
                   </Text>
