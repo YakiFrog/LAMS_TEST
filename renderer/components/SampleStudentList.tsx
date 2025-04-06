@@ -1,8 +1,9 @@
 // このコンポーネントは学生リストの表示と出退勤状況を管理します
 import React, { useState, useEffect } from 'react';
-import { Box, Wrap, WrapItem, Text, Badge } from '@chakra-ui/react';
+import { Box, Wrap, WrapItem, Text, Badge, useToast } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
+import { getCurrentTime, resetTime } from '../utils/timeManager';
 
 interface Student {
   id: string;
@@ -26,49 +27,45 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
       totalStayTime: number; // 追加: 累積滞在時間
     };
   }>({});
+  const toast = useToast();
 
   useEffect(() => {
     const loadAttendanceStates = () => {
       // 出勤状況の初期化処理：ローカルストレージからデータを読み込み、日付が今日でない場合はリセットする
       const storedAttendanceStates = localStorage.getItem('attendanceStates');
-      console.log("attendanceStates", storedAttendanceStates);
       if (storedAttendanceStates) {
         const parsedAttendanceStates = JSON.parse(storedAttendanceStates);
 
-        // 今日の日付を取得（時刻情報をリセット）
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // 現在の日付を取得（時刻情報をリセット）
+        const today = resetTime(getCurrentTime());
 
         let updated = false; // 更新フラグ
         let needsExport = false; // エクスポートが必要かのフラグ
+        const outdatedStudentIds = []; // 古くなった学生IDを保持する配列
 
-        // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はデータを削除する
+        // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はエクスポートフラグを立てる
         Object.keys(parsedAttendanceStates).forEach(studentId => {
           const attendanceState = parsedAttendanceStates[studentId];
           if (attendanceState) {
             if (attendanceState.attendanceTime) {
-              const attendanceDate = new Date(attendanceState.attendanceTime);
-              attendanceDate.setHours(0, 0, 0, 0);
+              const attendanceDate = resetTime(new Date(attendanceState.attendanceTime));
               // 出勤日時が今日でなければエクスポートフラグをセット
               if (attendanceDate.getTime() !== today.getTime()) {
                 needsExport = true;
-              }
-              // 出勤日時が今日でなければ削除
-              if (attendanceDate.getTime() !== today.getTime()) {
-                delete parsedAttendanceStates[studentId];
-                updated = true;
+                outdatedStudentIds.push(studentId);
                 return;
               }
               attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
             }
 
             if (attendanceState.leavingTime) {
-              const leavingDate = new Date(attendanceState.leavingTime);
-              leavingDate.setHours(0, 0, 0, 0);
-              // 退勤日時が今日でなければ削除
+              const leavingDate = resetTime(new Date(attendanceState.leavingTime));
+              // 退勤日時が今日でなければエクスポートフラグをセット
               if (leavingDate.getTime() !== today.getTime()) {
-                delete parsedAttendanceStates[studentId];
-                updated = true;
+                needsExport = true;
+                if (!outdatedStudentIds.includes(studentId)) {
+                  outdatedStudentIds.push(studentId);
+                }
                 return;
               }
               attendanceState.leavingTime = new Date(attendanceState.leavingTime);
@@ -80,41 +77,128 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
           }
         });
 
-        // 日付が変わったデータがある場合、削除前にCSVエクスポートを実行
+        // 日付が変わったデータがある場合、先にCSVエクスポートを実行してから削除する
         if (needsExport) {
-          // エクスポート処理を実行
-          exportAttendanceToCSV(parsedAttendanceStates, students, false)
-            .then(result => {
-              if (result.success) {
-                console.log('自動エクスポート成功:', result.message);
-              } else {
-                console.error('自動エクスポート失敗:', result.message);
+          try {
+            // 保存先パスがあるか確認
+            const exportPath = localStorage.getItem('exportPath');
+            if (exportPath) {
+              console.log('古いデータが見つかりました。エクスポートを実行します。', outdatedStudentIds);
+              
+              // エクスポート処理を実行（このタイミングでは学生データはまだ削除していない）
+              exportAttendanceToCSV(parsedAttendanceStates, students, false)
+                .then(result => {
+                  if (result.success) {
+                    console.log('自動エクスポート成功:', result.message);
+                    toast({
+                      title: "自動エクスポート成功",
+                      description: "日付が変わったため、前日の出勤データを自動エクスポートしました",
+                      status: "success",
+                      duration: 5000,
+                      isClosable: true,
+                    });
+                    
+                    // エクスポートが成功した後に古いデータを削除
+                    outdatedStudentIds.forEach(id => {
+                      delete parsedAttendanceStates[id];
+                      updated = true;
+                    });
+                    
+                    // 更新された状態をローカルストレージに保存
+                    if (updated) {
+                      localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
+                    }
+                    
+                    // 最後にUIの状態を更新
+                    setAttendanceStates(parsedAttendanceStates);
+                    
+                  } else {
+                    console.error('自動エクスポート失敗:', result.message);
+                    toast({
+                      title: "自動エクスポート失敗",
+                      description: result.message,
+                      status: "error",
+                      duration: 5000,
+                      isClosable: true,
+                    });
+                  }
+                })
+                .catch(error => {
+                  console.error('自動エクスポートエラー:', error);
+                  toast({
+                    title: "自動エクスポートエラー",
+                    description: `${error}`,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                  });
+                });
+            } else {
+              console.warn('エクスポートパスが設定されていないため、自動エクスポートをスキップします');
+              
+              // エクスポートせずに古いデータを削除
+              outdatedStudentIds.forEach(id => {
+                delete parsedAttendanceStates[id];
+                updated = true;
+              });
+              
+              // 更新された状態をローカルストレージに保存
+              if (updated) {
+                localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
               }
-            })
-            .catch(error => {
-              console.error('自動エクスポートエラー:', error);
+              
+              // UI状態の更新
+              setAttendanceStates(parsedAttendanceStates);
+            }
+          } catch (error) {
+            console.error('自動エクスポートエラー:', error);
+            
+            // エラー時にもデータを削除しUIを更新
+            outdatedStudentIds.forEach(id => {
+              delete parsedAttendanceStates[id];
+              updated = true;
             });
+            
+            if (updated) {
+              localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
+            }
+            
+            setAttendanceStates(parsedAttendanceStates);
+          }
+        } else {
+          // 日付の変更がなければそのまま状態を更新
+          setAttendanceStates(parsedAttendanceStates);
         }
-
-        setAttendanceStates(parsedAttendanceStates);
       }
     };
+    
     // 初回ロード時に実行
     loadAttendanceStates();
-    const intervalId = setInterval(loadAttendanceStates, 30 * 60 * 1000); // 30分ごとに実行
+    
+    // 日付変更や時間変更の検出のためにインターバルを設定
+    const intervalId = setInterval(loadAttendanceStates, 10 * 1000); // 10秒ごとに確認（デバッグ用に短縮）
+    
     // クリーンアップ関数：コンポーネントがアンマウントされたときにsetIntervalをクリアする
     return () => clearInterval(intervalId);
-  }, [students]);
+  }, [students, toast]);
 
   // 22:30を超えたときに出勤中の学生を22:30時点で自動退勤に更新するuseEffect
   useEffect(() => {
     const checkLateAttendance = () => {
-      const now = new Date();
-      const threshold = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 30, 0);
-      if (now >= threshold) {
+      const now = getCurrentTime();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      // 現在時刻が22:30以降かどうかチェック
+      if (hours > 22 || (hours === 22 && minutes >= 30)) {
+        // 22:30のDateオブジェクトを作成
+        const threshold = new Date(now);
+        threshold.setHours(22, 30, 0, 0);
+        
         setAttendanceStates(prevStates => {
           const newStates = { ...prevStates };
           let updated = false; // 更新フラグ
+          
           Object.keys(newStates).forEach(studentId => {
             const state = newStates[studentId];
             if (state && state.isAttending) {
@@ -128,17 +212,30 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
               updated = true;
             }
           });
+          
           if (updated) { // 更新があった場合のみローカルストレージに保存
             localStorage.setItem('attendanceStates', JSON.stringify(newStates));
-            window.location.reload(); // ページリロード
+            toast({
+              title: "自動退勤処理実行",
+              description: "22:30を過ぎたため、出勤中の学生を自動的に退勤状態にしました",
+              status: "info",
+              duration: 5000,
+              isClosable: true,
+            });
           }
+          
           return newStates;
         });
       }
     };
-    const intervalId = setInterval(checkLateAttendance, 10 * 60 * 1000); // 10分ごとに実行
+    
+    // 初回実行
+    checkLateAttendance();
+    
+    // 1分ごとにチェック
+    const intervalId = setInterval(checkLateAttendance, 60 * 1000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [toast]);
 
   const onClose = () => {
     // モーダルを閉じる処理

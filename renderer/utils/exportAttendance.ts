@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { getCurrentTime, resetTime } from './timeManager';
 
 interface Student {
   id: string;
@@ -25,6 +26,49 @@ interface ExportResult {
 const isElectronAvailable = (): boolean => {
   return !!(typeof window !== 'undefined' && window.electron);
 };
+
+/**
+ * 出勤データの日付を確認し、エクスポートすべきデータと現在保持すべきデータを分離する
+ * @param attendanceStates 全ての出勤データ
+ * @returns {expiredData, currentData} 期限切れのデータと現在のデータに分けたオブジェクト
+ */
+export function separateAttendanceData(attendanceStates: { [studentId: string]: AttendanceState }): {
+  expiredData: { [studentId: string]: AttendanceState };
+  currentData: { [studentId: string]: AttendanceState };
+} {
+  const today = resetTime(getCurrentTime());
+  const expiredData: { [studentId: string]: AttendanceState } = {};
+  const currentData: { [studentId: string]: AttendanceState } = {};
+
+  Object.entries(attendanceStates).forEach(([studentId, state]) => {
+    let isExpired = false;
+
+    // 出勤時刻を確認
+    if (state.attendanceTime) {
+      const attendanceDate = resetTime(new Date(state.attendanceTime));
+      if (attendanceDate.getTime() !== today.getTime()) {
+        isExpired = true;
+      }
+    }
+
+    // 退勤時刻を確認
+    if (state.leavingTime) {
+      const leavingDate = resetTime(new Date(state.leavingTime));
+      if (leavingDate.getTime() !== today.getTime()) {
+        isExpired = true;
+      }
+    }
+
+    // データを適切なオブジェクトに振り分け
+    if (isExpired) {
+      expiredData[studentId] = { ...state };
+    } else {
+      currentData[studentId] = { ...state };
+    }
+  });
+
+  return { expiredData, currentData };
+}
 
 /**
  * 出勤データをCSVファイルにエクスポートする関数
@@ -56,7 +100,7 @@ export async function exportAttendanceToCSV(
       const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      const date = new Date();
+      const date = getCurrentTime();
       const fileName = `attendance_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}.csv`;
       
       link.setAttribute("href", url);
@@ -84,10 +128,28 @@ export async function exportAttendanceToCSV(
     // CSVデータの生成
     const csvData = generateCSVContent(attendanceStates, students);
     
-    // 現在の月に基づいてファイル名を決定
-    const date = new Date();
-    const fileName = `attendance_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}.csv`;
+    // エクスポートする月を特定
+    // 手動エクスポートの場合は現在の月、自動エクスポートの場合はデータの月を使用
+    let monthToExport: Date;
+    
+    if (isManualExport) {
+      // 手動エクスポートの場合は現在の日付を使用
+      monthToExport = getCurrentTime();
+    } else {
+      // 自動エクスポートの場合は、データの最初のエントリの日付を使用
+      const firstEntry = Object.values(attendanceStates)[0];
+      if (firstEntry && firstEntry.attendanceTime) {
+        monthToExport = new Date(firstEntry.attendanceTime);
+      } else {
+        // データの日付が取得できない場合は現在の日付を使用
+        monthToExport = getCurrentTime();
+      }
+    }
+      
+    const fileName = `attendance_${monthToExport.getFullYear()}-${String(monthToExport.getMonth() + 1).padStart(2, '0')}.csv`;
     const filePath = `${exportPath}/${fileName}`;
+
+    console.log(`エクスポート先ファイル: ${filePath}`, { monthToExport, isManualExport });
 
     // ファイルの存在確認
     const fileExistsResult = await window.electron.fileExists(filePath);

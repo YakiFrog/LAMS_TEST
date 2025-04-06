@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Heading, Text, Divider } from '@chakra-ui/react';
+import { Box, Heading, Text, Divider, HStack, Button, Input, FormControl, FormLabel, 
+  IconButton, Switch, Tooltip, useDisclosure, Drawer, DrawerBody, DrawerHeader, 
+  DrawerOverlay, DrawerContent, DrawerCloseButton, VStack, Badge, Flex, Spacer } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import SampleStudentList from './SampleStudentList';
 import { WiDaySunny, WiCloudy, WiRain, WiThunderstorm, WiSnow } from 'react-icons/wi';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
-import { Button, useToast } from '@chakra-ui/react';
-import { DownloadIcon } from '@chakra-ui/icons';
+import { useToast } from '@chakra-ui/react';
+import { DownloadIcon, TimeIcon, SettingsIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
+import { FaFastForward } from 'react-icons/fa';
+import { getCurrentTime, getJapanTime, setOverrideTime, isTimeOverrideEnabled, getOverrideTime, advanceTimeBy } from '../utils/timeManager';
 
 // 型定義: 学生情報
 interface Student {
@@ -30,13 +34,18 @@ const float = keyframes`
 
 const Tab1Content: React.FC = () => {
   // 状態管理
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date>(getCurrentTime());
   const [isMounted, setIsMounted] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [isBouncing, setIsBouncing] = useState(false);
   const [weatherIcon, setWeatherIcon] = useState<React.ReactNode | null>(null);
   const toast = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  
+  // 時間設定用の状態
+  const [timeInputValue, setTimeInputValue] = useState('');
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [timeAdvanceMinutes, setTimeAdvanceMinutes] = useState(30);
 
   // useEffect 1: コンポーネントの初回マウント時のみ実行
   useEffect(() => {
@@ -49,7 +58,7 @@ const Tab1Content: React.FC = () => {
     if (!isMounted) return;
     
     const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
+      setCurrentTime(getCurrentTime());
     }, 1000);
     return () => clearInterval(intervalId);
   }, [isMounted]);
@@ -233,6 +242,126 @@ const Tab1Content: React.FC = () => {
     }
   };
 
+  // 時間設定を適用する関数
+  const applyTimeOverride = () => {
+    if (!timeInputValue) {
+      toast({
+        title: "入力エラー",
+        description: "有効な日時を入力してください",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      // 入力された日時文字列をDateオブジェクトに変換
+      const customDate = new Date(timeInputValue);
+      
+      if (isNaN(customDate.getTime())) {
+        throw new Error("無効な日時形式です");
+      }
+      
+      // 時間オーバーライドを設定
+      setOverrideTime(customDate);
+      
+      // 現在時刻を更新
+      setCurrentTime(customDate);
+      
+      toast({
+        title: "時間設定を適用しました",
+        description: `システム時間を ${customDate.toLocaleString()} に設定しました`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // 時間設定が触りやすいようドロワーを開いたままにする
+    } catch (error) {
+      toast({
+        title: "時間設定エラー",
+        description: `${error}`,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // 時間設定をリセットする関数
+  const resetTimeOverride = () => {
+    setOverrideTime(null);
+    setCurrentTime(new Date());
+    setTimeInputValue('');
+    
+    toast({
+      title: "時間設定をリセットしました",
+      description: "実際のシステム時間を使用します",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  // 現在時刻を時間設定フィールドに設定する関数
+  const setCurrentTimeToInput = () => {
+    // 現在の実際の時間を取得
+    const now = new Date();
+    // YYYY-MM-DDThh:mm 形式に変換
+    const formattedDateTime = now.toISOString().slice(0, 16);
+    setTimeInputValue(formattedDateTime);
+  };
+
+  // 時間を進める関数
+  const handleAdvanceTime = () => {
+    advanceTimeBy(timeAdvanceMinutes);
+    setCurrentTime(getCurrentTime());
+    
+    toast({
+      title: "時間を進めました",
+      description: `${timeAdvanceMinutes}分進めて ${getCurrentTime().toLocaleString()} になりました`,
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  // カスタム22:30に設定する関数
+  const setTo2230 = () => {
+    const now = new Date();
+    now.setHours(22, 30, 0, 0);
+    setOverrideTime(now);
+    setCurrentTime(now);
+    setTimeInputValue(now.toISOString().slice(0, 16));
+    
+    toast({
+      title: "22:30に設定しました",
+      description: "自動退勤処理のテスト用に22:30に設定しました",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  // 次の日の0:01に設定する関数
+  const setToNextDay = () => {
+    const now = new Date();
+    now.setDate(now.getDate() + 1);
+    now.setHours(0, 1, 0, 0);
+    setOverrideTime(now);
+    setCurrentTime(now);
+    setTimeInputValue(now.toISOString().slice(0, 16));
+    
+    toast({
+      title: "翌日0:01に設定しました",
+      description: "日付変更処理のテスト用に翌日の0:01に設定しました",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
   return (
     <Box p={6} height="0vh">
       {/* SVGフィルター定義: アイコンに影効果 */}
@@ -262,7 +391,7 @@ const Tab1Content: React.FC = () => {
         py={3}
         px={10}
         borderRadius="full"
-        onClick={handleClockClick}
+        onClick={() => onOpen()}
         cursor="pointer"
         transition="transform 0.1s ease-in-out"
         animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
@@ -270,7 +399,8 @@ const Tab1Content: React.FC = () => {
         display="flex"
         alignItems="center"
         justifyContent="center"
-        width="42vw" // 幅をコンテンツに合わせて自動調整
+        width="auto" // 幅を調整
+        minWidth="42vw" // 最小幅を設定
         height="auto" // 高さをコンテンツに合わせて自動調整
         boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
         whiteSpace="nowrap"
@@ -290,6 +420,39 @@ const Tab1Content: React.FC = () => {
             </>
           )}
         </Text>
+        {/* 時間オーバーライド中の場合のバッジ */}
+        {isTimeOverrideEnabled() && (
+          <Badge
+            position="absolute"
+            top="-40%"
+            left="50%"
+            transform="translateX(-50%)"
+            colorScheme="red"
+            fontSize="sm"
+            px={3}
+            py={1}
+            borderRadius="full"
+            boxShadow="0 0 5px rgba(255, 0, 0, 0.5)"
+          >
+            時間操作モード
+          </Badge>
+        )}
+        {/* 時間設定アイコン */}
+        <Tooltip label="時間設定">
+          <IconButton
+            aria-label="時間設定"
+            icon={<TimeIcon />}
+            colorScheme="blue"
+            variant="ghost"
+            fontSize="lg"
+            color="white"
+            _hover={{ bg: "rgba(255,255,255,0.2)" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+          />
+        </Tooltip>
         {/* 天気アイコンが設定されていれば表示 */}
         {weatherIcon && (
           <Box
@@ -310,6 +473,103 @@ const Tab1Content: React.FC = () => {
           </Box>
         )}
       </Box>
+
+      {/* 時間設定ドロワー */}
+      <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="md">
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth="1px" bg="blue.50">
+            <Flex align="center">
+              <TimeIcon mr={2} />
+              <Text>時間操作設定（デバッグ用）</Text>
+              <Spacer />
+              <Badge colorScheme={isTimeOverrideEnabled() ? "red" : "gray"} fontSize="sm" p={1} borderRadius="md">
+                {isTimeOverrideEnabled() ? "有効" : "無効"}
+              </Badge>
+            </Flex>
+          </DrawerHeader>
+
+          <DrawerBody>
+            <VStack spacing={5} align="stretch" mt={4}>
+              <Box bg="yellow.50" p={3} borderRadius="md" borderWidth="1px" borderColor="yellow.300">
+                <Text fontSize="sm" color="orange.700">
+                  この機能は開発およびテスト目的でのみ使用してください。時間関連のイベント・処理をシミュレートするためのものです。
+                </Text>
+              </Box>
+
+              <FormControl>
+                <FormLabel htmlFor="datetime-input">日時設定：</FormLabel>
+                <Input
+                  id="datetime-input"
+                  type="datetime-local"
+                  value={timeInputValue}
+                  onChange={(e) => setTimeInputValue(e.target.value)}
+                  mb={2}
+                />
+                <HStack>
+                  <Button onClick={applyTimeOverride} colorScheme="blue" leftIcon={<SettingsIcon />}>
+                    適用
+                  </Button>
+                  <Button onClick={setCurrentTimeToInput} colorScheme="teal" leftIcon={<RepeatIcon />}>
+                    現在時刻を設定
+                  </Button>
+                  <Button onClick={resetTimeOverride} colorScheme="gray">
+                    リセット
+                  </Button>
+                </HStack>
+              </FormControl>
+
+              <Divider />
+
+              <FormControl>
+                <FormLabel>時間を進める：</FormLabel>
+                <HStack>
+                  <Input
+                    type="number"
+                    value={timeAdvanceMinutes}
+                    onChange={(e) => setTimeAdvanceMinutes(parseInt(e.target.value))}
+                    width="100px"
+                    min={1}
+                  />
+                  <Text>分</Text>
+                  <Button 
+                    onClick={handleAdvanceTime} 
+                    colorScheme="purple" 
+                    leftIcon={<FaFastForward />}
+                    isDisabled={!isTimeOverrideEnabled()}
+                  >
+                    時間を進める
+                  </Button>
+                </HStack>
+              </FormControl>
+
+              <Divider />
+
+              <Box>
+                <Text fontWeight="bold" mb={2}>テスト用プリセット：</Text>
+                <HStack spacing={4} wrap="wrap">
+                  <Button onClick={setTo2230} colorScheme="orange" leftIcon={<ChevronRightIcon />} size="sm">
+                    22:30に設定 (自動退勤)
+                  </Button>
+                  <Button onClick={setToNextDay} colorScheme="red" leftIcon={<ChevronRightIcon />} size="sm">
+                    翌日0:01に設定 (日付変更)
+                  </Button>
+                </HStack>
+              </Box>
+
+              <Divider />
+
+              {isTimeOverrideEnabled() && getOverrideTime() && (
+                <Box bg="blue.50" p={3} borderRadius="md">
+                  <Text fontWeight="bold">現在の設定時間：</Text>
+                  <Text>{getOverrideTime()?.toLocaleString()}</Text>
+                </Box>
+              )}
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
 
       {/* 学生情報を学年別に表示 */}
       {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (

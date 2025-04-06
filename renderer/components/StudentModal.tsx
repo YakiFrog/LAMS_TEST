@@ -13,6 +13,7 @@ import {
   Text,
   useToast,
 } from '@chakra-ui/react';
+import { getCurrentTime, getJapanTime } from '../utils/timeManager';
 
 interface Props {
   isOpen: boolean;
@@ -35,12 +36,6 @@ interface Props {
     };
   }>>;
 }
-
-const getJapanTime = (): Date => {
-  const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  return new Date(utc + 9 * 60 * 60000);
-};
 
 const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceStates, setAttendanceStates }) => {
   // トースト通知を使用するためのフック
@@ -66,9 +61,6 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
 
     let now = getJapanTime();          // 現在時刻をJSTで取得
     const studentId = student.id;      // 対象学生のIDを取得
-
-    // テストで日にちを-1日する
-    // now = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     // 出退勤状態の更新処理
     setAttendanceStates((prevStates) => {
