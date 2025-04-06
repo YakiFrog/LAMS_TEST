@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { getCurrentTime, resetTime } from './timeManager';
+import { getStudentsMap, getStudentNameById } from './studentsManager';
 
 interface Student {
   id: string;
@@ -83,6 +84,11 @@ export async function exportAttendanceToCSV(
   isManualExport: boolean = false
 ): Promise<ExportResult> {
   try {
+    console.log('=== エクスポート開始 ===');
+    console.log('学生数:', students.length);
+    console.log('出勤データ数:', Object.keys(attendanceStates).length);
+    console.log('手動エクスポート:', isManualExport);
+    
     // 出勤データが空の場合
     if (Object.keys(attendanceStates).length === 0) {
       return {
@@ -203,18 +209,40 @@ function generateCSVContent(
   attendanceStates: { [studentId: string]: AttendanceState },
   students: Student[]
 ): string {
+  // デバッグ情報
+  console.log('=== CSVエクスポートデバッグ情報 ===');
+  console.log('出勤データのIDリスト:', Object.keys(attendanceStates));
+  console.log('学生データ件数:', students.length);
+  
   // 学生IDから名前を取得するマッピングを作成
   const studentMap: { [id: string]: string } = {};
+  
+  // 提供された学生リストからマッピングを作成
   students.forEach(student => {
     studentMap[student.id] = student.name;
   });
-
+  
+  // ローカルストレージの学生データからも補完
+  const storedStudentsMap = getStudentsMap();
+  
   // CSVのヘッダー行
   const headers = ['学生ID', '学生名', '出勤日時', '退勤日時', '滞在時間（秒）', '滞在時間'];
 
   // CSVの行データ
   const rows = Object.entries(attendanceStates).map(([studentId, state]) => {
-    const studentName = studentMap[studentId] || 'Unknown';
+    // マッピングされた学生名を取得、なければストレージから取得、それもなければIDを表示
+    let studentName = studentMap[studentId];
+    
+    if (!studentName && storedStudentsMap[studentId]) {
+      studentName = storedStudentsMap[studentId].name;
+    }
+    
+    if (!studentName) {
+      studentName = `ID:${studentId}`;
+    }
+    
+    console.log(`学生ID ${studentId} の名前: ${studentName}`);
+    
     const attendanceTime = state.attendanceTime ? new Date(state.attendanceTime).toLocaleString('ja-JP') : '';
     const leavingTime = state.leavingTime ? new Date(state.leavingTime).toLocaleString('ja-JP') : '';
     const totalSeconds = state.totalStayTime || 0;

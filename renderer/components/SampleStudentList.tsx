@@ -39,37 +39,35 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
         // 現在の日付を取得（時刻情報をリセット）
         const today = resetTime(getCurrentTime());
 
-        let updated = false; // 更新フラグ
         let needsExport = false; // エクスポートが必要かのフラグ
-        const outdatedStudentIds = []; // 古くなった学生IDを保持する配列
+        let expiredStudentIds = []; // 期限切れの学生ID
 
-        // 各学生の出退勤情報を検証し、今日の日付と一致しない場合はエクスポートフラグを立てる
+        // 1. 期限切れのデータをチェックする（削除はまだしない）
         Object.keys(parsedAttendanceStates).forEach(studentId => {
           const attendanceState = parsedAttendanceStates[studentId];
           if (attendanceState) {
             if (attendanceState.attendanceTime) {
               const attendanceDate = resetTime(new Date(attendanceState.attendanceTime));
-              // 出勤日時が今日でなければエクスポートフラグをセット
+              // 日付が違う場合は期限切れとしてマーク
               if (attendanceDate.getTime() !== today.getTime()) {
                 needsExport = true;
-                outdatedStudentIds.push(studentId);
-                return;
+                if (!expiredStudentIds.includes(studentId)) {
+                  expiredStudentIds.push(studentId);
+                }
               }
-              attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
             }
 
             if (attendanceState.leavingTime) {
               const leavingDate = resetTime(new Date(attendanceState.leavingTime));
-              // 退勤日時が今日でなければエクスポートフラグをセット
+              // 日付が違う場合は期限切れとしてマーク
               if (leavingDate.getTime() !== today.getTime()) {
                 needsExport = true;
-                if (!outdatedStudentIds.includes(studentId)) {
-                  outdatedStudentIds.push(studentId);
+                if (!expiredStudentIds.includes(studentId)) {
+                  expiredStudentIds.push(studentId);
                 }
-                return;
               }
-              attendanceState.leavingTime = new Date(attendanceState.leavingTime);
             }
+
             // totalStayTime が存在しない場合は初期化
             if (attendanceState.totalStayTime === undefined) {
               attendanceState.totalStayTime = 0;
@@ -77,16 +75,76 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
           }
         });
 
-        // 日付が変わったデータがある場合、先にCSVエクスポートを実行してから削除する
-        if (needsExport) {
+        // 日付変換処理（Date型に変換）
+        Object.values(parsedAttendanceStates).forEach(state => {
+          const attendanceState = state as {
+            isAttending: boolean;
+            attendanceTime: Date | null;
+            leavingTime: Date | null;
+            totalStayTime: number;
+          };
+          
+          if (attendanceState.attendanceTime) {
+            attendanceState.attendanceTime = new Date(attendanceState.attendanceTime);
+          }
+          if (attendanceState.leavingTime) {
+            attendanceState.leavingTime = new Date(attendanceState.leavingTime);
+          }
+        });
+
+        // 2. 必要に応じてエクスポート処理
+        if (needsExport && expiredStudentIds.length > 0) {
+          console.log('期限切れの出勤データを検出しました。エクスポートします。', expiredStudentIds);
+          console.log('現在のstudentsデータ:', students.map(s => ({ id: s.id, name: s.name })));
+          
           try {
-            // 保存先パスがあるか確認
             const exportPath = localStorage.getItem('exportPath');
             if (exportPath) {
-              console.log('古いデータが見つかりました。エクスポートを実行します。', outdatedStudentIds);
+              // 現在の学生データのキャッシュをローカル変数に保存
+              const currentStudents = [...students];
               
-              // エクスポート処理を実行（このタイミングでは学生データはまだ削除していない）
-              exportAttendanceToCSV(parsedAttendanceStates, students, false)
+              // 念のためローカルストレージからも学生データを取得してマージする
+              const storedStudents = localStorage.getItem('students');
+              let finalStudentsList = currentStudents;
+              
+              if (storedStudents) {
+                try {
+                  const parsedStoredStudents = JSON.parse(storedStudents) as Student[];
+                  console.log('ローカルストレージから読み込んだ学生数:', parsedStoredStudents.length);
+                  
+                  // IDの重複を避けるためのマップを作成
+                  const studentsMap: Record<string, Student> = {};
+                  
+                  // 現在のstudentsをマップに追加
+                  currentStudents.forEach(student => {
+                    studentsMap[student.id] = student;
+                  });
+                  
+                  // ストレージからの学生をマップに追加（重複するIDは上書き）
+                  parsedStoredStudents.forEach(student => {
+                    if (!studentsMap[student.id]) {
+                      studentsMap[student.id] = student;
+                    }
+                  });
+                  
+                  // マップから配列に戻す
+                  finalStudentsList = Object.values(studentsMap);
+                  console.log('マージ後の学生数:', finalStudentsList.length);
+                } catch (error) {
+                  console.error('ローカルストレージの学生データ解析エラー:', error);
+                }
+              }
+
+              // エクスポート用のデータを作成（期限切れのデータのみ）
+              const dataToExport = {};
+              expiredStudentIds.forEach(id => {
+                if (parsedAttendanceStates[id]) {
+                  dataToExport[id] = { ...parsedAttendanceStates[id] };
+                }
+              });
+              
+              // studentsデータを直接使用してエクスポート
+              exportAttendanceToCSV(dataToExport, finalStudentsList, false)
                 .then(result => {
                   if (result.success) {
                     console.log('自動エクスポート成功:', result.message);
@@ -98,20 +156,16 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                       isClosable: true,
                     });
                     
-                    // エクスポートが成功した後に古いデータを削除
-                    outdatedStudentIds.forEach(id => {
+                    // エクスポート成功後に期限切れデータを削除
+                    expiredStudentIds.forEach(id => {
                       delete parsedAttendanceStates[id];
-                      updated = true;
                     });
                     
-                    // 更新された状態をローカルストレージに保存
-                    if (updated) {
-                      localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
-                    }
+                    // 更新されたデータをローカルストレージに保存
+                    localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
                     
-                    // 最後にUIの状態を更新
-                    setAttendanceStates(parsedAttendanceStates);
-                    
+                    // UIの状態を更新
+                    setAttendanceStates({ ...parsedAttendanceStates });
                   } else {
                     console.error('自動エクスポート失敗:', result.message);
                     toast({
@@ -121,6 +175,14 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                       duration: 5000,
                       isClosable: true,
                     });
+                    
+                    // エクスポートに失敗しても期限切れデータは削除する
+                    expiredStudentIds.forEach(id => {
+                      delete parsedAttendanceStates[id];
+                    });
+                    
+                    localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
+                    setAttendanceStates({ ...parsedAttendanceStates });
                   }
                 })
                 .catch(error => {
@@ -132,42 +194,40 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                     duration: 5000,
                     isClosable: true,
                   });
+                  
+                  // エラー時にも期限切れデータは削除する
+                  expiredStudentIds.forEach(id => {
+                    delete parsedAttendanceStates[id];
+                  });
+                  
+                  localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
+                  setAttendanceStates({ ...parsedAttendanceStates });
                 });
             } else {
               console.warn('エクスポートパスが設定されていないため、自動エクスポートをスキップします');
               
-              // エクスポートせずに古いデータを削除
-              outdatedStudentIds.forEach(id => {
+              // エクスポートパスがない場合も期限切れデータは削除
+              expiredStudentIds.forEach(id => {
                 delete parsedAttendanceStates[id];
-                updated = true;
               });
               
-              // 更新された状態をローカルストレージに保存
-              if (updated) {
-                localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
-              }
-              
-              // UI状態の更新
-              setAttendanceStates(parsedAttendanceStates);
+              localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
+              setAttendanceStates({ ...parsedAttendanceStates });
             }
           } catch (error) {
-            console.error('自動エクスポートエラー:', error);
+            console.error('自動エクスポート処理中にエラー:', error);
             
-            // エラー時にもデータを削除しUIを更新
-            outdatedStudentIds.forEach(id => {
+            // エラー時にも期限切れデータは削除
+            expiredStudentIds.forEach(id => {
               delete parsedAttendanceStates[id];
-              updated = true;
             });
             
-            if (updated) {
-              localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
-            }
-            
-            setAttendanceStates(parsedAttendanceStates);
+            localStorage.setItem('attendanceStates', JSON.stringify(parsedAttendanceStates));
+            setAttendanceStates({ ...parsedAttendanceStates });
           }
         } else {
-          // 日付の変更がなければそのまま状態を更新
-          setAttendanceStates(parsedAttendanceStates);
+          // エクスポートが不要な場合は直接状態を更新
+          setAttendanceStates({ ...parsedAttendanceStates });
         }
       }
     };
