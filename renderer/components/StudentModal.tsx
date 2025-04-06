@@ -307,7 +307,7 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                         position="absolute"
                         top="-5px"
                         left="-6px"
-                        right="-5px"
+                        right="-6px"
                         bottom="-5px"
                         borderRadius="full"
                         borderWidth="4px"

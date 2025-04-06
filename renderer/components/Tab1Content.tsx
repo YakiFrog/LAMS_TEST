@@ -399,7 +399,7 @@ const Tab1Content: React.FC = () => {
         zIndex={1000}
         bg="#131113"
         py={3}
-        px={10}
+        px={8}  // 10から6に変更して横幅を小さく
         borderRadius="full"
         onClick={handleClockClick} // リロード処理を実行
         cursor="pointer"
@@ -410,7 +410,7 @@ const Tab1Content: React.FC = () => {
         alignItems="center"
         justifyContent="center"
         width="auto" // 幅を調整
-        minWidth="42vw" // 最小幅を設定
+        minWidth="32vw" // 42vwから32vwに変更して横幅を小さく
         height="auto" // 高さをコンテンツに合わせて自動調整
         boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
         whiteSpace="nowrap"
@@ -607,43 +607,6 @@ const Tab1Content: React.FC = () => {
             </Box>
         </Box>
       ))}
-
-      {/* エクスポートボタン */}
-      <Button
-        position="fixed"
-        bottom="2.5%"
-        left="50%"
-        transform="translateX(-50%)"
-        width="auto"
-        fontSize="lg"
-        fontWeight="bold"
-        px={8}
-        py={6}
-        borderRadius="full"
-        bg="purple.600"
-        color="white"
-        _hover={{ bg: "purple.700" }}
-        _active={{ bg: "purple.800" }}
-        _focus={{ boxShadow: "outline" }}
-        animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
-        transformOrigin="bottom"
-        filter="drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6))"
-        fontFamily="Arial, sans-serif"
-        mx="auto"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        colorScheme="purple"
-        leftIcon={<DownloadIcon />}
-        onClick={handleManualExport}
-        isLoading={isExporting}
-        loadingText="エクスポート中..."
-        zIndex={1000}
-        boxShadow="lg"
-        isDisabled={isExporting}
-      >
-        今月の出勤データを手動でエクスポート<Text fontSize="sm">（日付変われば自動エクスポート）</Text>
-      </Button>
     </Box>
   );
 };
