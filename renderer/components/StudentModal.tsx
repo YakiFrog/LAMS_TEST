@@ -12,8 +12,134 @@ import {
   Button,
   Text,
   useToast,
+  Box,
+  HStack,
+  VStack,
+  Circle,
+  Spinner,
+  Tooltip,
 } from '@chakra-ui/react';
+import { keyframes, Global } from '@emotion/react';
 import { getCurrentTime, getJapanTime } from '../utils/timeManager';
+import { fetchCurrentMonthAttendance } from '../utils/attendanceAnalyzer';
+
+// パルスアニメーションをキーフレームとして定義
+const pulseKeyframes = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+`;
+
+// WeekdayAttendanceIndicatorコンポーネント - 曜日出勤状況を視覚的に表示
+const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
+  const [attendanceDays, setAttendanceDays] = useState<number[]>([]);
+  const [currentDayIndex, setCurrentDayIndex] = useState<number>(-1);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+  
+  // パルスアニメーションを定義
+  const pulseAnimation = `${pulseKeyframes} 2s infinite`;
+  
+  useEffect(() => {
+    const loadAttendanceData = async () => {
+      try {
+        setIsLoading(true);
+        const result = await fetchCurrentMonthAttendance(studentId);
+        setAttendanceDays(result.attendanceDays);
+        setCurrentDayIndex(result.currentDayIndex);
+      } catch (err) {
+        console.error('出勤データ読み込みエラー:', err);
+        setError('出勤データの読み込みに失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (studentId) {
+      loadAttendanceData();
+    }
+  }, [studentId]);
+  
+  if (isLoading) {
+    return (
+      <Box textAlign="center" py={4}>
+        <Spinner size="sm" mr={2} />
+        <Text display="inline">出勤データを読み込み中...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Box textAlign="center" py={4} color="red.500">
+        <Text>{error}</Text>
+      </Box>
+    );
+  }
+  
+  return (
+    <VStack spacing={2} align="center" w="100%">
+      <Text fontSize="md" fontWeight="bold" mb={1}>
+        今月の出勤曜日
+      </Text>
+      <HStack spacing={3} justify="center">
+        {weekdays.map((day, index) => {
+          const isAttendance = attendanceDays.includes(index);
+          const isToday = index === currentDayIndex;
+          
+          return (
+            <Tooltip
+              key={index}
+              label={`${day}曜日: ${isAttendance ? '出勤あり' : '出勤なし'}${isToday ? ' (今日)' : ''}`}
+              placement="top"
+              hasArrow
+            >
+              <Circle
+                size="40px"
+                bg={isAttendance ? "red.500" : "gray.300"}
+                color="white"
+                fontWeight="bold"
+                cursor="pointer"
+                _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
+                transition="all 0.3s"
+                boxShadow={isToday ? "0 0 0 3px teal.400" : "none"}
+                borderWidth={isToday ? "4px" : "0"} // 2px から 4px に変更してより太くした
+                borderColor="teal.400"
+                position="relative"
+                // 今日の曜日に光るエフェクトを追加
+                _after={isToday ? {
+                  content: '""',
+                  position: 'absolute',
+                  top: '-4px',
+                  left: '-4px',
+                  right: '-4px',
+                  bottom: '-4px',
+                  borderRadius: 'full',
+                  borderWidth: '3px', // こちらも 2px から 3px に変更して太くした
+                  borderColor: 'teal.400',
+                  animation: pulseAnimation
+                } : {}}
+              >
+                {day}
+              </Circle>
+            </Tooltip>
+          );
+        })}
+      </HStack>
+    </VStack>
+  );
+};
 
 interface Props {
   isOpen: boolean;
@@ -211,12 +337,21 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         </div>
         <ModalBody border="1px solid #ccc" borderRadius="2xl" p={4} ml={6} mr={6} mt={2}>
           {student ? (
-            <>
-            <p>今週何曜日にきたかを視覚的に表示</p>
-            <p>週あたりの出勤日数・滞在時間を表示</p>
-            <p>月あたりの出勤日数・滞在時間を表示</p>
-            <p>年あたりの出勤日数・滞在時間を表示</p>
-            </>
+            <VStack spacing={4}>
+              {/* 曜日出勤状況の表示 */}
+              {student.id && <WeekdayAttendanceIndicator studentId={student.id} />}
+              
+              {/* 以下は将来の実装のためのプレースホルダー */}
+              <Box as="p" fontSize="sm" color="gray.500" mt={2}>
+                週あたりの出勤日数・滞在時間を表示
+              </Box>
+              <Box as="p" fontSize="sm" color="gray.500">
+                月あたりの出勤日数・滞在時間を表示
+              </Box>
+              <Box as="p" fontSize="sm" color="gray.500">
+                年あたりの出勤日数・滞在時間を表示
+              </Box>
+            </VStack>
           ) : (
             <Text>No student selected.</Text>
           )}
