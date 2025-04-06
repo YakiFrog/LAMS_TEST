@@ -4,6 +4,20 @@ import { Box, Wrap, WrapItem, Text, Badge, useToast } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
 import { getCurrentTime, resetTime, formatStayTime } from '../utils/timeManager';
+import { keyframes } from '@emotion/react';
+
+// ラベル切り替えアニメーションの定義
+const fadeInOut = keyframes`
+  0%, 45% { opacity: 1; transform: translateY(0); }
+  50%, 95% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+`;
+
+const fadeOutIn = keyframes`
+  0%, 45% { opacity: 0; transform: translateY(10px); }
+  50%, 95% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(10px); }
+`;
 
 interface Student {
   id: string;
@@ -386,23 +400,45 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
                   '出勤中'}
               </Badge>
               )}
-              {/* 退勤済の場合のバッジ表示 - クライアントサイドでのみレンダリング */}
+              {/* 退勤済の場合のバッジとスライドする滞在時間バッジ - クライアントサイドでのみレンダリング */}
               {isClient && attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
-              <Badge
-                colorScheme="red"
-                position="absolute"
-                bottom="-2"
-                right="-2"
-                fontSize="md"
-                zIndex={2}
-                borderRadius="full"
-                px={2}
-                boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
-              >
-                {attendanceStates[student.id]?.leavingTime ? 
-                  `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
-                  '退勤済'}
-              </Badge>
+                <>
+                  {/* 退勤時間バッジ（フェードイン・アウト） */}
+                  <Badge
+                    colorScheme="red"
+                    position="absolute"
+                    bottom="-2"
+                    right="-2"
+                    fontSize="md"
+                    zIndex={2}
+                    borderRadius="full"
+                    px={2}
+                    boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                    animation={`${fadeInOut} 10s infinite`}
+                  >
+                    {attendanceStates[student.id]?.leavingTime ? 
+                      `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
+                      '退勤済'}
+                  </Badge>
+                  
+                  {/* 滞在時間バッジ（フェードアウト・イン） */}
+                  {attendanceStates[student.id]?.totalStayTime > 0 && (
+                    <Badge
+                      colorScheme="blue"
+                      position="absolute"
+                      bottom="-2"
+                      right="-2"
+                      fontSize="md"
+                      zIndex={2}
+                      borderRadius="full"
+                      px={2}
+                      boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                      animation={`${fadeOutIn} 10s infinite`}
+                    >
+                      {formatStayTime(attendanceStates[student.id].totalStayTime)}
+                    </Badge>
+                  )}
+                </>
               )}
             </Box>
           </WrapItem>
