@@ -512,7 +512,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay/>
-      <ModalContent width="50%" height="50%" borderRadius="3xl">
+      <ModalContent width="50%" maxHeight="80%" borderRadius="3xl" pb={4}>
         {/* ヘッダー: 学生名またはデフォルトのタイトルが表示されます */}
         <ModalHeader
           fontSize={"2xl"}
@@ -562,25 +562,25 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             <Text>No student selected.</Text>
           )}
         </ModalBody>
-        <Text fontSize={"xl"} fontWeight={"bold"} textAlign={"center"} mt={2}>
+        <Text fontSize={"xl"} fontWeight={"bold"} textAlign={"center"} mt={2} mb={2}>
           滞在時間: <Text as="span" fontSize="3xl">{totalStayTimeStr ? totalStayTimeStr : "未登録"}</Text>
         </Text>
-          <ModalFooter>
-            {/* ボタンの色とテキストは出退勤状態に応じて切り替わります */}
-              <Button
-              colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
-              onClick={handleAttendance}
-              borderRadius="3xl"
-              width="100%"
-              height="7vh"
-              fontSize={"4xl"}
-              fontWeight="black"
-              letterSpacing="widest"
-              boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(233, 233, 233, 0.78), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
-              >
-              {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
-              </Button>
-          </ModalFooter>
+        <ModalFooter px={4} pb={0}>
+          {/* ボタンの色とテキストは出退勤状態に応じて切り替わります */}
+          <Button
+            colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
+            onClick={handleAttendance}
+            borderRadius="3xl"
+            width="100%"
+            height="7vh"
+            fontSize={"4xl"}
+            fontWeight="black"
+            letterSpacing="widest"
+            boxShadow="0 0 5px 1px rgba(0, 0, 0, 0.3), inset 0 3px 10px rgba(233, 233, 233, 0.78), inset 0 -3px 10px rgba(0, 0, 0, 0.35)"
+          >
+            {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
