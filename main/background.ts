@@ -1,5 +1,5 @@
 import path from 'path'
-import { app, ipcMain, dialog } from 'electron'
+import { app, ipcMain, dialog, BrowserWindow } from 'electron'
 import serve from 'electron-serve'
 import { createWindow } from './helpers'
 import fs from 'fs'
@@ -19,7 +19,9 @@ if (isProd) {
     width: 1000,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: isProd 
+        ? path.join(__dirname, 'preload.js') 
+        : path.join(app.getAppPath(), 'main', 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -33,12 +35,19 @@ if (isProd) {
     mainWindow.webContents.openDevTools()
   }
 
-  // ディレクトリ選択ダイアログを開くためのハンドラー
+  // 参照ボタンで使用するディレクトリ選択ダイアログのハンドラー
   ipcMain.handle('select-directory', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory']
-    });
-    return result;
+    console.log('select-directory handler called');
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+      });
+      console.log('Directory selection result:', result);
+      return result;
+    } catch (error) {
+      console.error('Directory selection error:', error);
+      return { canceled: true, filePaths: [] };
+    }
   });
 
   // ファイル保存のハンドラー
@@ -73,7 +82,12 @@ if (isProd) {
   // ファイル読み込みのハンドラー
   ipcMain.handle('read-file', async (_, filePath) => {
     try {
-      return fs.readFileSync(filePath, 'utf8');
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath, 'utf8');
+        return data;
+      } else {
+        throw new Error('ファイルが存在しません: ' + filePath);
+      }
     } catch (error) {
       throw new Error(`ファイル読み込みエラー: ${error.toString()}`);
     }

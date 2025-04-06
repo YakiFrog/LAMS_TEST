@@ -41,12 +41,23 @@ const useElectronAPI = (): ElectronAPI | null => {
   useEffect(() => {
     // クライアントサイドでのみwindowオブジェクトにアクセス
     if (typeof window !== 'undefined') {
-      // 明示的に型チェックを行う
-      if ((window as any).electron) {
-        setApi((window as any).electron);
-        console.log('Electron API detected:', (window as any).electron);
-      } else {
-        console.warn('Electron API not found in window object');
+      try {
+        // 明示的に型チェックを行う
+        if ((window as any).electron) {
+          const electronAPI = (window as any).electron;
+          console.log('Electron API detected:', electronAPI);
+          
+          // APIの存在確認
+          if (typeof electronAPI.selectDirectory === 'function') {
+            setApi(electronAPI);
+          } else {
+            console.warn('Electron API is detected but selectDirectory method is missing');
+          }
+        } else {
+          console.warn('Electron API not found in window object');
+        }
+      } catch (error) {
+        console.error('Error initializing Electron API:', error);
       }
     }
   }, []);
@@ -485,17 +496,31 @@ const Tab3Content: React.FC = () => {
       // electronAPIがクライアントサイドで利用可能なら使用
       if (electronAPI) {
         console.log('Using Electron API to select directory');
-        const result = await electronAPI.selectDirectory();
-        if (result && !result.canceled && result.filePaths.length > 0) {
-          setExportPath(result.filePaths[0]);
-          return;
+        try {
+          const result = await electronAPI.selectDirectory();
+          console.log('Directory selection result:', result);
+          
+          if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
+            setExportPath(result.filePaths[0]);
+            return;
+          } else {
+            console.log('Directory selection canceled or empty');
+          }
+        } catch (error) {
+          console.error('Error calling selectDirectory:', error);
+          toast({
+            title: "ディレクトリ選択エラー",
+            description: `Electron APIのエラー: ${error}`,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
         }
+      } else {
+        console.log('Electron API not available, using fallback method');
       }
       
       // Electron APIが利用できない場合のフォールバック
-      console.log('Electron API not available, using fallback method');
-      
-      // 開発環境用のダミーパスを設定するか、手動入力を促す
       if (process.env.NODE_ENV === 'development') {
         const defaultPath = '/tmp/demo-export-path';
         setExportPath(defaultPath);
