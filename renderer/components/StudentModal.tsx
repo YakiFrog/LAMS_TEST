@@ -298,35 +298,40 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
               placement="top"
             >
               <PopoverTrigger>
-                <Circle
-                  size="40px"
-                  bg={isAttendance ? "red.500" : "gray.300"}
-                  color="white"
-                  fontWeight="bold"
-                  cursor="pointer"
-                  onClick={() => handleDaySelect(index)}
-                  onTouchStart={() => handleDaySelect(index)}
-                  _hover={{ transform: 'scale(1.1)', transition: 'transform 0.2s' }}
-                  transition="all 0.3s"
-                  boxShadow={isToday ? "0 0 0 3px teal.400" : "none"}
-                  borderWidth={isToday ? "4px" : "0"}
-                  borderColor="teal.400"
+                <Box
                   position="relative"
-                  _after={isToday ? {
-                    content: '""',
-                    position: 'absolute',
-                    top: '-4px',
-                    left: '-4px',
-                    right: '-4px',
-                    bottom: '-4px',
-                    borderRadius: 'full',
-                    borderWidth: '3px',
-                    borderColor: 'teal.400',
-                    animation: pulseAnimation
-                  } : {}}
+                  display="inline-block"
                 >
-                  {day}
-                </Circle>
+                      {isToday && (
+                      <Box
+                        position="absolute"
+                        top="-5px"
+                        left="-6px"
+                        right="-5px"
+                        bottom="-5px"
+                        borderRadius="full"
+                        borderWidth="4px"
+                        borderColor="green.400"
+                        animation={pulseAnimation}
+                        zIndex={0}
+                      />
+                      )}
+                    <Circle
+                    size="40px"
+                    bg={isAttendance ? "red.500" : "gray.300"}
+                    color="white"
+                    fontWeight="bold"
+                    cursor="pointer"
+                    onClick={() => handleDaySelect(index)}
+                    onTouchStart={() => handleDaySelect(index)}
+                    _hover={{ transform: 'scale(1.0)', transition: 'transform 0.2s' }}
+                    transition="all 0.3s"
+                    position="relative"
+                    zIndex={1}
+                  >
+                    {day}
+                  </Circle>
+                </Box>
               </PopoverTrigger>
               <PopoverContent width="auto" p={1}>
                 <PopoverArrow />
