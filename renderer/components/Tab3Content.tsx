@@ -118,6 +118,7 @@ const Tab3Content: React.FC = () => {
   const electronAPI = useElectronAPI();
   const [students, setStudents] = useState<Student[]>([]);
   const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentId, setNewStudentId] = useState('');  // 追加: 新規学生ID入力用の状態
   const [selectedGrade, setSelectedGrade] = useState<'教員' | 'M2' | 'M1' | 'B4'>('B4');
   const toast = useToast();
 
@@ -170,8 +171,24 @@ const Tab3Content: React.FC = () => {
       return;
     }
 
+    // IDが入力されていなければ自動生成、入力されていればそれを使用
+    const studentId = newStudentId.trim() ? newStudentId.trim() : Date.now().toString();
+
+    // 既存のIDと重複していないか確認
+    const isDuplicate = students.some(student => student.id === studentId);
+    if (isDuplicate) {
+      toast({
+        title: "エラー",
+        description: "入力されたIDは既に使用されています",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const newStudent: Student = {
-      id: Date.now().toString(),
+      id: studentId,
       name: newStudentName.trim(),
       grade: selectedGrade,
     };
@@ -180,10 +197,11 @@ const Tab3Content: React.FC = () => {
     setStudents(updatedStudents);
     localStorage.setItem('students', JSON.stringify(updatedStudents));
     setNewStudentName('');
+    setNewStudentId('');  // ID入力欄もクリア
 
     toast({
       title: "追加完了",
-      description: `${selectedGrade} ${newStudent.name}を追加しました`,
+      description: `${selectedGrade} ${newStudent.name} (ID: ${newStudent.id}) を追加しました`,
       status: "success",
       duration: 3000,
       isClosable: true,
@@ -638,6 +656,13 @@ const Tab3Content: React.FC = () => {
             <option value="B4">B4</option>
           </Select>
           <Input
+            placeholder="ID(空欄で自動生成)"
+            value={newStudentId}
+            onChange={(e) => setNewStudentId(e.target.value)}
+            size="lg"
+            width="200px"
+          />
+          <Input
             placeholder="学生名を入力"
             value={newStudentName}
             onChange={(e) => setNewStudentName(e.target.value)}
@@ -857,7 +882,10 @@ const Tab3Content: React.FC = () => {
                             _hover={{ bg: "gray.50" }}
                             cursor="grab"
                           >
-                            <Text fontSize="lg">{student.name}</Text>
+                            <VStack align="start" spacing={1}>
+                              <Text fontSize="lg">{student.name}</Text>
+                              <Text fontSize="xs" color="gray.500">ID: {student.id}</Text>
+                            </VStack>
                             <HStack>
                               <IconButton
                                 aria-label="Clear attendance"
