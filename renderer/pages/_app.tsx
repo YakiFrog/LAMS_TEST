@@ -2,6 +2,7 @@ import { ChakraProvider } from '@chakra-ui/react'
 import { useState, useEffect, createContext } from 'react'
 import theme from '../lib/theme'
 import { AppProps } from 'next/app'
+import { setupDefaultSettings } from '../utils/setupDefaults'
 
 // クライアント状態を共有するためのコンテキスト作成
 export const ClientContext = createContext(false);
@@ -12,6 +13,9 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   // コンポーネントがマウントされた後にクライアントサイドであることを示す
   useEffect(() => {
+    // デフォルト設定の初期化
+    setupDefaultSettings();
+
     setIsClient(true)
   }, [])
 

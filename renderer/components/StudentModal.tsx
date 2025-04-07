@@ -595,9 +595,10 @@ interface Props {
       totalStayTime: number; // 追加: 累積滞在時間
     };
   }>>;
+  onAttendanceChange?: () => void; // 追加: 出退勤状態変更時のコールバック
 }
 
-const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceStates, setAttendanceStates }) => {
+const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceStates, setAttendanceStates, onAttendanceChange }) => {
   // トースト通知を使用するためのフック
   const toast = useToast();
   
@@ -691,6 +692,12 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
 
       return newState;
     });
+
+    // 出退勤状態変更を通知
+    if (onAttendanceChange) {
+      setTimeout(onAttendanceChange, 300); // レンダリングが完了した後に実行
+    }
+
     onClose(); // モーダルを閉じる
   };
 

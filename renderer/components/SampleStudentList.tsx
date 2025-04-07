@@ -1,5 +1,5 @@
 // このコンポーネントは学生リストの表示と出退勤状況を管理します
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Wrap, WrapItem, Text, Badge, useToast, Flex } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
@@ -28,6 +28,8 @@ interface Student {
 
 interface Props {
   students: Student[];
+  zoomLevel?: number; // 追加：ズームレベルのProps
+  onAttendanceChange?: (hasChanged: boolean) => void; // 出退勤状態変更時のコールバック追加
 }
 
 // 学生パネルサイズを計算するための定数
@@ -38,7 +40,7 @@ const BASE_HEIGHT = 60;  // 基本高さ
 const CHAR_WIDTH = 22;   // 1文字あたりの幅（ピクセル）を増加
 const MAX_PANELS_PER_ROW = 6; // 1行あたりの最大パネル数（レイアウト調整用）
 
-const SampleStudentList: React.FC<Props> = ({ students }) => {
+const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAttendanceChange }) => {
   // モーダル表示状態と選択された学生の状態管理
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -58,6 +60,8 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
 
   // ReactのuseEffect hookを使用して、クライアントサイドレンダリングを制御する
   const [isClient, setIsClient] = useState(false);
+  // ズームレベルを内部で計算する
+  const contentScale = zoomLevel / 100;
 
   useEffect(() => {
     setIsClient(true);
@@ -98,38 +102,45 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
   const calculateScale = (studentId: string): number => {
     const days = attendanceDaysMap[studentId] || 0;
     
+    // ズームレベルを考慮したスケール計算
+    // 基本スケール計算のロジックは変更せず
+    let baseScale = MIN_SCALE;
+    
     // 出勤日数が0の場合は最小スケール
     if (days === 0) {
-      return MIN_SCALE;
+      baseScale = MIN_SCALE;
+    } else {
+      // 出勤日数が1以上の場合、スケールを適用する
+      // 全学生の平均値を計算（過剰なスケーリングを防ぐため）
+      const totalStudents = students.length || 1;
+      const totalDays = Object.values(attendanceDaysMap).reduce((sum, days) => sum + days, 0);
+      const averageDays = totalDays / totalStudents;
+      
+      // 調整係数（1以上の場合は全体的にスケールを抑制）- 調整係数を小さくして差を強調
+      const adjustmentFactor = Math.max(1, averageDays / 20); // 15から20に変更（差をより強調）
+      
+      // 日数が多いほど大きなスケール値を返す（MIN_SCALEからMAX_SCALEの範囲）
+      if (maxAttendanceDays <= 1) {
+        // 最大出勤日数が1以下の場合、出勤があれば最小値と最大値の中間のスケール
+        baseScale = MIN_SCALE + ((MAX_SCALE - MIN_SCALE) * 0.4);
+      } else {
+        // 1日でも出勤していれば最小でもMIN_SCALEよりも大きく始まるように補正
+        // 出勤日数が1の場合でも初期値を高めに設定
+        const baseIncrement = (MAX_SCALE - MIN_SCALE) * 0.3; // 1日目から30%増加
+        
+        // スケールを計算するが、調整係数で抑制 - 累乗を加えて差を強調
+        const dayRatio = days / maxAttendanceDays;
+        // 比率を累乗することで差を非線形に強調（出勤日数の少ない学生はより小さく）
+        const enhancedRatio = Math.pow(dayRatio, 1.1); // 指数を1.2から1.1に少し緩和
+        const rawScale = MIN_SCALE + baseIncrement + ((MAX_SCALE - MIN_SCALE - baseIncrement) * enhancedRatio);
+        
+        // ベースとなるスケール値を少し高めに設定してメリハリを強調
+        baseScale = MIN_SCALE + ((rawScale - MIN_SCALE) / adjustmentFactor);
+      }
     }
     
-    // 出勤日数が1以上の場合、スケールを適用する
-    // 全学生の平均値を計算（過剰なスケーリングを防ぐため）
-    const totalStudents = students.length || 1;
-    const totalDays = Object.values(attendanceDaysMap).reduce((sum, days) => sum + days, 0);
-    const averageDays = totalDays / totalStudents;
-    
-    // 調整係数（1以上の場合は全体的にスケールを抑制）- 調整係数を小さくして差を強調
-    const adjustmentFactor = Math.max(1, averageDays / 20); // 15から20に変更（差をより強調）
-    
-    // 日数が多いほど大きなスケール値を返す（MIN_SCALEからMAX_SCALEの範囲）
-    if (maxAttendanceDays <= 1) {
-      // 最大出勤日数が1以下の場合、出勤があれば最小値と最大値の中間のスケール
-      return MIN_SCALE + ((MAX_SCALE - MIN_SCALE) * 0.4);
-    }
-    
-    // 1日でも出勤していれば最小でもMIN_SCALEよりも大きく始まるように補正
-    // 出勤日数が1の場合でも初期値を高めに設定
-    const baseIncrement = (MAX_SCALE - MIN_SCALE) * 0.3; // 1日目から30%増加
-    
-    // スケールを計算するが、調整係数で抑制 - 累乗を加えて差を強調
-    const dayRatio = days / maxAttendanceDays;
-    // 比率を累乗することで差を非線形に強調（出勤日数の少ない学生はより小さく）
-    const enhancedRatio = Math.pow(dayRatio, 1.1); // 指数を1.2から1.1に少し緩和
-    const rawScale = MIN_SCALE + baseIncrement + ((MAX_SCALE - MIN_SCALE - baseIncrement) * enhancedRatio);
-    
-    // ベースとなるスケール値を少し高めに設定してメリハリを強調
-    return MIN_SCALE + ((rawScale - MIN_SCALE) / adjustmentFactor);
+    // ズームレベルを適用（基本スケールに対して乗算）
+    return baseScale * contentScale;
   };
 
   // 出勤状況の読み込み用useEffect
@@ -407,6 +418,27 @@ const SampleStudentList: React.FC<Props> = ({ students }) => {
     const intervalId = setInterval(checkLateAttendance, 60 * 1000);
     return () => clearInterval(intervalId);
   }, [toast]);
+
+  // 前回の出退勤状態を記録するためのref
+  const prevAttendanceStatesRef = useRef<string>("");
+
+  // 出勤状態の変更を監視するuseEffect
+  useEffect(() => {
+    // 変更があった場合のみ親コンポーネントに通知
+    if (onAttendanceChange && Object.keys(attendanceStates).length > 0) {
+      // JSON文字列化して前回の状態と比較
+      const currentStateStr = JSON.stringify(attendanceStates);
+      
+      // 初回読み込み時は変更通知しない（前回の状態がない場合）
+      if (prevAttendanceStatesRef.current && prevAttendanceStatesRef.current !== currentStateStr) {
+        console.log("出退勤状態の実際の変更を検知");
+        onAttendanceChange(true); // 変更あり
+      }
+      
+      // 現在の状態を保存
+      prevAttendanceStatesRef.current = currentStateStr;
+    }
+  }, [attendanceStates, onAttendanceChange]);
 
   const onClose = () => {
     // モーダルを閉じる処理
