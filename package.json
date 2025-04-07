@@ -2,7 +2,7 @@
   "private": true,
   "name": "lams-test",
   "description": "My application description",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "versionDescription": "いろいろやったよ",
   "author": "Ketan Patel <ktan.p.patel@gmail.com>",
   "main": "app/background.js",
