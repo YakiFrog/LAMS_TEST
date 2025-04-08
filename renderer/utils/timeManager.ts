@@ -198,6 +198,25 @@ export function formatStayTime(totalSeconds: number): string {
 }
 
 /**
+ * 滞在時間を秒単位からコンパクトな形式（「○h○m」形式）の文字列に変換
+ * @param totalSeconds 滞在時間（秒）
+ * @returns コンパクトにフォーマットされた滞在時間文字列
+ */
+export function formatStayTimeCompact(totalSeconds: number): string {
+  if (!totalSeconds && totalSeconds !== 0) return "0h";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  
+  if (hours === 0) {
+    return `${minutes}m`;
+  } else if (minutes === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h${minutes}m`;
+  }
+}
+
+/**
  * 指定した時間が22:30以降かどうかを確認する
  * @param date 確認する日時
  * @returns 22:30以降ならtrue、そうでなければfalse

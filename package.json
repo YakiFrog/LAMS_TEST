@@ -14,6 +14,9 @@
     "build:linux": "nextron build --linux",
     "build:win32": "nextron build --win --ia32",
     "build:win64": "nextron build --win --x64",
+    "build:win64:mac": "electron-builder --win --x64",
+    "build:win32:mac": "electron-builder --win --ia32",
+    "build:win:mac:both": "electron-builder --win --x64 --ia32",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -42,5 +45,21 @@
   },
   "win": {
     "fullscreen": true
+  },
+  "build": {
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "resources/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "resources/icon.icns"
+    }
   }
 }

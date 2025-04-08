@@ -3,9 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, Wrap, WrapItem, Text, Badge, useToast, Flex } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
-import { getCurrentTime, resetTime, formatStayTime } from '../utils/timeManager';
+import { getCurrentTime, resetTime, formatStayTime, formatStayTimeCompact } from '../utils/timeManager';
 import { getYearlyAttendanceDays } from '../utils/attendanceAnalyzer';
 import { keyframes } from '@emotion/react';
+import Papa from 'papaparse';
 
 // ラベル切り替えアニメーションの定義
 const fadeInOut = keyframes`
@@ -61,6 +62,9 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
   // 学年ごとの平均出勤日数を追跡
   const [averageAttendanceByGrade, setAverageAttendanceByGrade] = useState<{[grade: string]: number}>({});
 
+  // 学生の累計滞在時間を追跡
+  const [totalStayTimeMap, setTotalStayTimeMap] = useState<{[studentId: string]: number}>({});
+
   // ReactのuseEffect hookを使用して、クライアントサイドレンダリングを制御する
   const [isClient, setIsClient] = useState(false);
   // ズームレベルを内部で計算する
@@ -70,10 +74,11 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
     setIsClient(true);
   }, []);
 
-  // 学生の出勤日数を取得する
+  // 学生の出勤日数と累計滞在時間を取得する
   useEffect(() => {
     const fetchAttendanceDays = async () => {
       const daysMap: {[studentId: string]: number} = {};
+      const stayTimeMap: {[studentId: string]: number} = {};
       let maxDays = 1; // 0除算を避けるため最小値を1に設定
       
       // 学年ごとの出勤日数を集計するための変数
@@ -85,6 +90,64 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
         try {
           const days = await getYearlyAttendanceDays(student.id);
           daysMap[student.id] = days;
+          
+          // 累計滞在時間を計算 - ローカルストレージとCSVファイルの両方から取得
+          let totalStayTime = 0;
+          
+          // 1. ローカルストレージの現在のデータから滞在時間を取得
+          if (attendanceStates[student.id]) {
+            totalStayTime = attendanceStates[student.id].totalStayTime || 0;
+          }
+          
+          // 2. CSVファイルからの累計滞在時間を取得して合算
+          if (typeof window !== 'undefined' && window.electron) {
+            const exportPath = localStorage.getItem('exportPath');
+            if (exportPath) {
+              try {
+                // 現在の年を取得
+                const currentYear = getCurrentTime().getFullYear();
+                
+                // 今年の各月のCSVファイルを確認
+                for (let month = 1; month <= 12; month++) {
+                  const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+                  const fileName = `attendance_${monthKey}.csv`;
+                  const filePath = `${exportPath}/${fileName}`;
+                  
+                  // ファイルが存在するか確認
+                  const exists = await window.electron.fileExists(filePath);
+                  
+                  if (exists.exists) {
+                    const csvContent = await window.electron.readFile(filePath);
+                    if (csvContent) {
+                      // CSVをパース
+                      const parsedData = Papa.parse(csvContent, { header: true });
+                      
+                      if (parsedData.data && Array.isArray(parsedData.data)) {
+                        // 学生IDでフィルタリング
+                        const studentRecords = parsedData.data.filter((record: any) => 
+                          record['学生ID'] === student.id
+                        );
+                        
+                        // このファイル内の滞在時間を合計
+                        studentRecords.forEach((record: any) => {
+                          if (record['滞在時間（秒）']) {
+                            const stayTimeSeconds = parseInt(record['滞在時間（秒）'], 10);
+                            if (!isNaN(stayTimeSeconds)) {
+                              totalStayTime += stayTimeSeconds;
+                            }
+                          }
+                        });
+                      }
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error(`CSV滞在時間の読み取りエラー (${student.id}):`, error);
+              }
+            }
+          }
+          
+          stayTimeMap[student.id] = totalStayTime;
           
           // 学年ごとの集計
           if (!gradeAttendanceSums[student.grade]) {
@@ -101,6 +164,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
         } catch (error) {
           console.error(`学生ID ${student.id} の出勤日数取得エラー:`, error);
           daysMap[student.id] = 0;
+          stayTimeMap[student.id] = 0;
           
           // エラー時も学生数はカウント
           if (!gradeStudentCounts[student.grade]) {
@@ -122,13 +186,16 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
       
       setAverageAttendanceByGrade(averages);
       setAttendanceDaysMap(daysMap);
+      setTotalStayTimeMap(stayTimeMap);
       setMaxAttendanceDays(maxDays);
+      
+      console.log('累計滞在時間を更新:', stayTimeMap);
     };
     
     if (students.length > 0) {
       fetchAttendanceDays();
     }
-  }, [students]);
+  }, [students, attendanceStates]);
 
   // 出勤日数に基づいてスケール係数を計算
   const calculateScale = (studentId: string): number => {
@@ -524,7 +591,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   borderRadius="3xl" // Add general roundness to all corners
                   borderTopRightRadius="md"
                   borderBottomLeftRadius="md" 
-                  borderBottomRightRadius="md"
+                  borderBottomRightRadius="xl"
                 >
                   {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '5px' }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.2em', letterSpacing: '5px' }}>日</span>
                 </Badge>
@@ -551,6 +618,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   
                   // 出勤日数の強調表示（出勤日数が多いほど強調）
                   const attendanceDays = attendanceDaysMap[student.id] || 0;
+                  const totalStayTime = totalStayTimeMap[student.id] || 0;
                   const isFrequent = attendanceDays > (maxAttendanceDays * 0.7); // 70%以上なら頻繁とみなす
                   
                   return (
@@ -603,7 +671,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         }}
                         overflow="visible" // 内容がはみ出ても表示できるように
                       >
-                        {/* 出勤日数表示 - 日数が1以上の場合のみ表示 */}
+                        {/* 出勤日数と累計滞在時間表示 - 日数が1以上の場合のみ表示 */}
                         {attendanceDaysMap[student.id] > 0 && (
                           <Badge
                             position="absolute"
@@ -616,8 +684,15 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             px={2.5}
                             py={0.5}
                             boxShadow="0 1px 2px rgba(0,0,0,0.2)"
+                            display="flex"
+                            alignItems="center"
                           >
-                            {attendanceDaysMap[student.id]}日
+                            <span>{attendanceDaysMap[student.id]}日</span>
+                            {totalStayTime > 0 && (
+                              <span style={{ marginLeft: '3px' }}>
+                                ({formatStayTimeCompact(totalStayTime)})
+                              </span>
+                            )}
                           </Badge>
                         )}
                         
@@ -667,13 +742,13 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                               borderRadius="full"
                               px={2}
                               py={1}
-                              boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
-                              animation={`${fadeInOut} 10s infinite`}
-                            >
+                                boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                                animation={`${fadeInOut} 10s infinite`}
+                              >
                               {attendanceStates[student.id]?.leavingTime ? 
                                 `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
                                 '退勤済'}
-                            </Badge>
+                              </Badge>
                             
                             {/* 滞在時間バッジ（フェードアウト・イン） */}
                             {attendanceStates[student.id]?.totalStayTime > 0 && (
@@ -704,14 +779,16 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
           );
         })}
       </Box>
-
-      <StudentModal 
-        isOpen={isOpen} 
-        onClose={onClose} 
-        student={selectedStudent} 
-        attendanceStates={attendanceStates}
-        setAttendanceStates={setAttendanceStates}
-      />
+      
+      {isClient && (
+        <StudentModal 
+          isOpen={isOpen} 
+          onClose={onClose} 
+          student={selectedStudent} 
+          attendanceStates={attendanceStates}
+          setAttendanceStates={setAttendanceStates}
+        />
+      )}
     </>
   );
 };
