@@ -812,7 +812,36 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
                 <Text fontSize="xl" fontWeight="bold" textAlign="center" mb={4}>
                   年間出勤カレンダー
                 </Text>
-                <YearlyAttendanceCalendar studentId={student.id} />
+                <Box 
+                  overflowX="auto"
+                  whiteSpace="nowrap"
+                  pb={4}
+                  css={{
+                    /* カスタムスクロールバースタイル */
+                    '&::-webkit-scrollbar': {
+                      height: '12px',
+                      display: 'block',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                      borderRadius: '6px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#888',
+                      borderRadius: '6px',
+                      border: '2px solid #f1f1f1',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      background: '#555',
+                    },
+                    /* スクロールバーを常に表示 */
+                    '-webkit-overflow-scrolling': 'touch',
+                    'scrollbar-width': 'auto',
+                    'scrollbar-color': '#888 #f1f1f1',
+                  }}
+                >
+                  <YearlyAttendanceCalendar studentId={student.id} />
+                </Box>
               </Box>
             )}
             
