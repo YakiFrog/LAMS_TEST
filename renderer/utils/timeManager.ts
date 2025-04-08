@@ -115,6 +115,9 @@ export function advanceTimeBy(minutes: number): void {
     useOverrideTime = true;
   }
   
+  // 変更前の時刻を記録
+  const previousTime = new Date(currentTimeOverride);
+  
   // 時間を進める
   currentTimeOverride = new Date(currentTimeOverride.getTime() + minutes * 60000);
   
@@ -124,7 +127,11 @@ export function advanceTimeBy(minutes: number): void {
     localStorage.setItem('useTimeOverride', 'true');
   }
   
-  console.log(`[TimeManager] 時間を ${minutes} 分進めました: ${currentTimeOverride.toLocaleString()}`);
+  // より詳細なログ出力
+  console.log(
+    `[TimeManager] 時間を ${minutes} 分進めました: ` +
+    `${previousTime.toLocaleString()} → ${currentTimeOverride.toLocaleString()}`
+  );
 }
 
 /**

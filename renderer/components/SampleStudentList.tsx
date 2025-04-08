@@ -58,6 +58,9 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
   const [maxAttendanceDays, setMaxAttendanceDays] = useState<number>(1);
   const toast = useToast();
 
+  // 学年ごとの平均出勤日数を追跡
+  const [averageAttendanceByGrade, setAverageAttendanceByGrade] = useState<{[grade: string]: number}>({});
+
   // ReactのuseEffect hookを使用して、クライアントサイドレンダリングを制御する
   const [isClient, setIsClient] = useState(false);
   // ズームレベルを内部で計算する
@@ -73,11 +76,23 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
       const daysMap: {[studentId: string]: number} = {};
       let maxDays = 1; // 0除算を避けるため最小値を1に設定
       
+      // 学年ごとの出勤日数を集計するための変数
+      const gradeAttendanceSums: {[grade: string]: number} = {};
+      const gradeStudentCounts: {[grade: string]: number} = {};
+      
       // すべての学生の出勤日数を取得
       for (const student of students) {
         try {
           const days = await getYearlyAttendanceDays(student.id);
           daysMap[student.id] = days;
+          
+          // 学年ごとの集計
+          if (!gradeAttendanceSums[student.grade]) {
+            gradeAttendanceSums[student.grade] = 0;
+            gradeStudentCounts[student.grade] = 0;
+          }
+          gradeAttendanceSums[student.grade] += days;
+          gradeStudentCounts[student.grade]++;
           
           // 最大値を更新
           if (days > maxDays) {
@@ -86,9 +101,26 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
         } catch (error) {
           console.error(`学生ID ${student.id} の出勤日数取得エラー:`, error);
           daysMap[student.id] = 0;
+          
+          // エラー時も学生数はカウント
+          if (!gradeStudentCounts[student.grade]) {
+            gradeStudentCounts[student.grade] = 0;
+          }
+          gradeStudentCounts[student.grade]++;
         }
       }
       
+      // 学年ごとの平均出勤日数を計算
+      const averages: {[grade: string]: number} = {};
+      Object.keys(gradeStudentCounts).forEach(grade => {
+        if (gradeStudentCounts[grade] > 0) {
+          averages[grade] = Math.round((gradeAttendanceSums[grade] || 0) / gradeStudentCounts[grade]);
+        } else {
+          averages[grade] = 0;
+        }
+      });
+      
+      setAverageAttendanceByGrade(averages);
       setAttendanceDaysMap(daysMap);
       setMaxAttendanceDays(maxDays);
     };
@@ -464,179 +496,213 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
   return (
     <>
       <Box width="100%" maxHeight="100%">
-        <Wrap spacing={3} justify="flex-start" align="center">
-          {/* ソートした学生のリストを使用 */}
-          {sortStudents().map(student => {
-            // 出勤日数に基づくスケール係数
-            const scale = calculateScale(student.id);
-            
-            // 各学年のパネル数に応じて幅を制限
-            const maxPanelWidth = students.length > MAX_PANELS_PER_ROW 
-              ? `${100 / MAX_PANELS_PER_ROW - 3}%` // 余白を少し減らす
-              : `${BASE_WIDTH * scale}px`;
-            
-            // スケールに基づいてパネルサイズを計算
-            // 名前の長さに比例した幅を確保するために係数を1.2に増加
-            const nameWidth = student.name.length * CHAR_WIDTH * scale * 1.2; 
-            const paddingHorizontal = 20 * scale; // 余白を増加
-            // 最小幅を保証する
-            const minNameWidth = 120 * scale;
-            const width = `${Math.max(minNameWidth, Math.min(BASE_WIDTH * 1.5 * scale, nameWidth + paddingHorizontal * 2))}px`;
-            const height = `${BASE_HEIGHT * scale}px`;
-            const fontSize = `${1 * scale}rem`;
-            
-            // 出勤日数の強調表示（出勤日数が多いほど強調）
-            const attendanceDays = attendanceDaysMap[student.id] || 0;
-            const isFrequent = attendanceDays > (maxAttendanceDays * 0.7); // 70%以上なら頻繁とみなす
-            
-            return (
-              <WrapItem 
-                key={student.id} 
-                maxWidth={maxPanelWidth} 
-                margin="0.25rem"
-                // 出勤日数が多いパネルの順序を後ろに（下段に表示されやすく）
-                order={attendanceDays > 0 ? -attendanceDays : 0}
-              >
-                <Box
-                  borderWidth={
-                    attendanceStates[student.id]?.isAttending
-                      ? "3px"
-                      : attendanceStates[student.id]?.leavingTime
-                      ? "3px"
-                      : isFrequent ? "2px" : "1px" // 頻繁な出勤者は太めの枠線
-                  }
-                  borderRadius="3xl"
-                  py={2}
-                  px={`${paddingHorizontal}px`}
-                  width={width}
-                  height={height}
-                  minW={`${minNameWidth}px`} // 最小幅を設定
-                  maxW="100%" // 親コンテナ以上にならない
-                  cursor="pointer"
-                  onClick={() => onOpen(student)}
-                  position="relative"
-                  borderColor={
-                    attendanceStates[student.id]?.isAttending
-                      ? "green.400"
-                      : attendanceStates[student.id]?.leavingTime
-                      ? "red.400"
-                      : isFrequent ? "purple.300" : "gray.200" // 頻繁な出勤者は紫色の枠線
-                  }
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  boxShadow={
-                    attendanceStates[student.id]?.isAttending
-                      ? "0 2px 4px rgb(0, 255, 0)"
-                      : attendanceStates[student.id]?.leavingTime
-                      ? "0 2px 4px rgb(255, 0, 0)"
-                      : isFrequent ? "0 3px 5px rgba(128, 90, 213, 0.3)" : "0 2px 2px rgba(0, 0, 0, 0.3)"
-                  }
-                  transition="all 0.3s ease"
-                  _hover={{
-                    transform: "translateY(-3px)",
-                    boxShadow: "0 3px 8px rgba(0, 0, 0, 0.2)"
-                  }}
-                  overflow="visible" // 内容がはみ出ても表示できるように
+        {/* 学年ごとのセクションを追加 */}
+        {['教員', 'M2', 'M1', 'B4'].map(grade => {
+          const gradeStudents = students.filter(student => student.grade === grade);
+          if (gradeStudents.length === 0) return null;
+          
+          return (
+            <Box 
+              key={grade} 
+              position="relative" 
+              mb={4} 
+              pb={4}
+            >
+              {/* 学年の平均出勤日数を表示 */}
+                <Badge
+                  position="absolute"
+                  bottom="-13px"
+                  right="-17px"
+                  bg="black"
+                  color="white"
+                  fontSize="xl" // increased from sm
+                  px={5}
+                  pl={7}
+                  py={1}
+                  letterSpacing="3px" // Add space between letters
+                  borderTopLeftRadius="3xl" // Even more rounded top-left corner
+                  borderRadius="3xl" // Add general roundness to all corners
+                  borderTopRightRadius="md"
+                  borderBottomLeftRadius="md" 
+                  borderBottomRightRadius="md"
                 >
-                  {/* 出勤日数表示 - 日数が1以上の場合のみ表示 */}
-                  {attendanceDaysMap[student.id] > 0 && (
-                    <Badge
-                      position="absolute"
-                      top="-11px"
-                      left="20%"
-                      transform="translateX(-50%)"
-                      colorScheme={isFrequent ? "purple" : "blue"} // 頻繁な出勤者は紫色のバッジ
-                      fontSize={`${0.7 * scale}rem`}
-                      borderRadius="full"
-                      px={2.5}
-                      py={0.5}
-                      boxShadow="0 1px 2px rgba(0,0,0,0.2)"
-                      // fontWeight={isFrequent ? "bold" : "medium"} // 頻繁な出勤者は太字
+                  {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '5px' }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.2em', letterSpacing: '5px' }}>日</span>
+                </Badge>
+              <Wrap spacing={3} justify="flex-start" align="center">
+                {/* その学年の学生だけをフィルタリングして表示 */}
+                {sortStudents().filter(student => student.grade === grade).map(student => {
+                  // 出勤日数に基づくスケール係数
+                  const scale = calculateScale(student.id);
+                  
+                  // 各学年のパネル数に応じて幅を制限
+                  const maxPanelWidth = gradeStudents.length > MAX_PANELS_PER_ROW 
+                    ? `${100 / MAX_PANELS_PER_ROW - 3}%` // 余白を少し減らす
+                    : `${BASE_WIDTH * scale}px`;
+                  
+                  // スケールに基づいてパネルサイズを計算
+                  // 名前の長さに比例した幅を確保するために係数を1.2に増加
+                  const nameWidth = student.name.length * CHAR_WIDTH * scale * 1.2; 
+                  const paddingHorizontal = 20 * scale; // 余白を増加
+                  // 最小幅を保証する
+                  const minNameWidth = 120 * scale;
+                  const width = `${Math.max(minNameWidth, Math.min(BASE_WIDTH * 1.5 * scale, nameWidth + paddingHorizontal * 2))}px`;
+                  const height = `${BASE_HEIGHT * scale}px`;
+                  const fontSize = `${1 * scale}rem`;
+                  
+                  // 出勤日数の強調表示（出勤日数が多いほど強調）
+                  const attendanceDays = attendanceDaysMap[student.id] || 0;
+                  const isFrequent = attendanceDays > (maxAttendanceDays * 0.7); // 70%以上なら頻繁とみなす
+                  
+                  return (
+                    <WrapItem 
+                      key={student.id} 
+                      maxWidth={maxPanelWidth} 
+                      margin="0.25rem"
+                      // 出勤日数が多いパネルの順序を後ろに（下段に表示されやすく）
+                      order={attendanceDays > 0 ? -attendanceDays : 0}
                     >
-                      {attendanceDaysMap[student.id]}日
-                    </Badge>
-                  )}
-                  
-                  <Text 
-                    fontSize={fontSize} 
-                    textAlign="center"
-                    width="100%" 
-                    overflow="visible"
-                    textOverflow="clip"
-                    whiteSpace="nowrap" // 改行を許可せず、1行で表示
-                    color="#131113"
-                  >
-                    {student.name}
-                  </Text>
-                  
-                  {/* 出勤中の場合のバッジ表示 - クライアントサイドでのみレンダリング */}
-                  {isClient && attendanceStates[student.id]?.isAttending && (
-                    <Badge
-                      colorScheme="green"
-                      position="absolute"
-                      bottom="-13px"
-                      right="-5px"
-                      fontSize={`${0.8 * scale}rem`}
-                      zIndex={2}
-                      borderRadius="full"
-                      px={2}
-                      py={1}
-                      boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
-                    >
-                      {attendanceStates[student.id]?.attendanceTime ? 
-                        `${new Date(attendanceStates[student.id].attendanceTime!).getHours()}:${String(new Date(attendanceStates[student.id].attendanceTime!).getMinutes()).padStart(2, '0')} 出勤` : 
-                        '出勤中'}
-                    </Badge>
-                  )}
-                  
-                  {/* 退勤済の場合のバッジとスライドする滞在時間バッジ - クライアントサイドでのみレンダリング */}
-                  {isClient && attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
-                    <>
-                      {/* 退勤時間バッジ（フェードイン・アウト） */}
-                      <Badge
-                        colorScheme="red"
-                        position="absolute"
-                        bottom="-13px"
-                        right="-5px"
-                        fontSize={`${0.8 * scale}rem`}
-                        zIndex={2}
-                        borderRadius="full"
-                        px={2}
-                        py={1}
-                        boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
-                        animation={`${fadeInOut} 10s infinite`}
+                      <Box
+                        borderWidth={
+                          attendanceStates[student.id]?.isAttending
+                            ? "3px"
+                            : attendanceStates[student.id]?.leavingTime
+                            ? "3px"
+                            : isFrequent ? "2px" : "1px" // 頻繁な出勤者は太めの枠線
+                        }
+                        borderRadius="3xl"
+                        py={2}
+                        px={`${paddingHorizontal}px`}
+                        width={width}
+                        height={height}
+                        minW={`${minNameWidth}px`} // 最小幅を設定
+                        maxW="100%" // 親コンテナ以上にならない
+                        cursor="pointer"
+                        onClick={() => onOpen(student)}
+                        position="relative"
+                        borderColor={
+                          attendanceStates[student.id]?.isAttending
+                            ? "green.400"
+                            : attendanceStates[student.id]?.leavingTime
+                            ? "red.400"
+                            : isFrequent ? "purple.300" : "gray.200" // 頻繁な出勤者は紫色の枠線
+                        }
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        boxShadow={
+                          attendanceStates[student.id]?.isAttending
+                            ? "0 2px 4px rgb(0, 255, 0)"
+                            : attendanceStates[student.id]?.leavingTime
+                            ? "0 2px 4px rgb(255, 0, 0)"
+                            : isFrequent ? "0 3px 5px rgba(128, 90, 213, 0.3)" : "0 2px 2px rgba(0, 0, 0, 0.3)"
+                        }
+                        transition="all 0.3s ease"
+                        _hover={{
+                          transform: "translateY(-3px)",
+                          boxShadow: "0 3px 8px rgba(0, 0, 0, 0.2)"
+                        }}
+                        overflow="visible" // 内容がはみ出ても表示できるように
                       >
-                        {attendanceStates[student.id]?.leavingTime ? 
-                          `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
-                          '退勤済'}
-                      </Badge>
-                      
-                      {/* 滞在時間バッジ（フェードアウト・イン） */}
-                      {attendanceStates[student.id]?.totalStayTime > 0 && (
-                        <Badge
-                          colorScheme="blue"
-                          position="absolute"
-                          bottom="-13px"
-                          right="-5px"
-                          fontSize={`${0.8 * scale}rem`}
-                          zIndex={2}
-                          borderRadius="full"
-                          px={2}
-                          py={1}
-                          boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
-                          animation={`${fadeOutIn} 10s infinite`}
+                        {/* 出勤日数表示 - 日数が1以上の場合のみ表示 */}
+                        {attendanceDaysMap[student.id] > 0 && (
+                          <Badge
+                            position="absolute"
+                            top="-11px"
+                            left="20%"
+                            transform="translateX(-50%)"
+                            colorScheme={isFrequent ? "purple" : "blue"} // 頻繁な出勤者は紫色のバッジ
+                            fontSize={`${0.7 * scale}rem`}
+                            borderRadius="full"
+                            px={2.5}
+                            py={0.5}
+                            boxShadow="0 1px 2px rgba(0,0,0,0.2)"
+                          >
+                            {attendanceDaysMap[student.id]}日
+                          </Badge>
+                        )}
+                        
+                        <Text 
+                          fontSize={fontSize} 
+                          textAlign="center"
+                          width="100%" 
+                          overflow="visible"
+                          textOverflow="clip"
+                          whiteSpace="nowrap" // 改行を許可せず、1行で表示
+                          color="#131113"
                         >
-                          {formatStayTime(attendanceStates[student.id].totalStayTime)}
-                        </Badge>
-                      )}
-                    </>
-                  )}
-                </Box>
-              </WrapItem>
-            );
-          })}
-        </Wrap>
+                          {student.name}
+                        </Text>
+                        
+                        {/* 出勤中の場合のバッジ表示 - クライアントサイドでのみレンダリング */}
+                        {isClient && attendanceStates[student.id]?.isAttending && (
+                          <Badge
+                            colorScheme="green"
+                            position="absolute"
+                            bottom="-13px"
+                            right="-5px"
+                            fontSize={`${0.8 * scale}rem`}
+                            zIndex={2}
+                            borderRadius="full"
+                            px={2}
+                            py={1}
+                            boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                          >
+                            {attendanceStates[student.id]?.attendanceTime ? 
+                              `${new Date(attendanceStates[student.id].attendanceTime!).getHours()}:${String(new Date(attendanceStates[student.id].attendanceTime!).getMinutes()).padStart(2, '0')} 出勤` : 
+                              '出勤中'}
+                          </Badge>
+                        )}
+                        
+                        {/* 退勤済の場合のバッジとスライドする滞在時間バッジ - クライアントサイドでのみレンダリング */}
+                        {isClient && attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending && (
+                          <>
+                            {/* 退勤時間バッジ（フェードイン・アウト） */}
+                            <Badge
+                              colorScheme="red"
+                              position="absolute"
+                              bottom="-13px"
+                              right="-5px"
+                              fontSize={`${0.8 * scale}rem`}
+                              zIndex={2}
+                              borderRadius="full"
+                              px={2}
+                              py={1}
+                              boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                              animation={`${fadeInOut} 10s infinite`}
+                            >
+                              {attendanceStates[student.id]?.leavingTime ? 
+                                `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
+                                '退勤済'}
+                            </Badge>
+                            
+                            {/* 滞在時間バッジ（フェードアウト・イン） */}
+                            {attendanceStates[student.id]?.totalStayTime > 0 && (
+                              <Badge
+                                colorScheme="blue"
+                                position="absolute"
+                                bottom="-13px"
+                                right="-5px"
+                                fontSize={`${0.8 * scale}rem`}
+                                zIndex={2}
+                                borderRadius="full"
+                                px={2}
+                                py={1}
+                                boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                                animation={`${fadeOutIn} 10s infinite`}
+                              >
+                                {formatStayTime(attendanceStates[student.id].totalStayTime)}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </Box>
+                    </WrapItem>
+                  );
+                })}
+              </Wrap>
+            </Box>
+          );
+        })}
       </Box>
 
       <StudentModal 
