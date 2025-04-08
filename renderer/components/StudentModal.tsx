@@ -24,12 +24,14 @@ import {
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
-  useDisclosure
+  useDisclosure,
+  Flex
 } from '@chakra-ui/react';
 import { keyframes, Global } from '@emotion/react';
 import Papa from 'papaparse';
 import { getCurrentTime, getJapanTime, formatStayTime } from '../utils/timeManager';
 import { fetchCurrentMonthAttendance } from '../utils/attendanceAnalyzer';
+import YearlyAttendanceCalendar from './YearlyAttendanceCalendar';
 
 // パルスアニメーションをキーフレームとして定義
 const pulseKeyframes = keyframes`
@@ -780,6 +782,16 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
               
               {/* 週・月・年の出勤統計を表示 */}
               {student.id && <AttendanceStatistics studentId={student.id} />}
+              
+              {/* GitHubスタイルの年間出勤カレンダーを表示 */}
+              {student.id && (
+                <Box w="100%" pt={2}>
+                  <Text fontSize="sm" fontWeight="bold" color="gray.700" mb={2} textAlign="center">
+                    年間出勤カレンダー
+                  </Text>
+                  <YearlyAttendanceCalendar studentId={student.id} />
+                </Box>
+              )}
             </VStack>
           ) : (
             <Text>No student selected.</Text>
