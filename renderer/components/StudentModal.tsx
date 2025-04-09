@@ -747,7 +747,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
       <ModalOverlay/>
       <ModalContent 
         borderRadius="3xl" 
-        outline="10px solid red" outlineOffset="5px"
+        // outline="10px solid red" outlineOffset="5px"
         bg="none"
       >
         {/* 左側のコンテンツ */}
@@ -782,23 +782,22 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
               ID: {student?.id}
             </Text>
           </Box>
-          <VStack spacing={4} align="stretch">
+          {/* 出退勤時刻の表示エリア */}
+          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
+            <Text fontSize={"xl"} fontWeight={"bold"}>
+              出勤: <Text as="span" fontSize="3xl" letterSpacing="wider">{attendanceTimeStr ? attendanceTimeStr : "未登録"}</Text>
+            </Text>
+            <Text fontSize={"xl"} fontWeight={"bold"} ml={6}>
+              退勤: <Text as="span" fontSize="3xl" letterSpacing="wider">{leavingTimeStr ? leavingTimeStr : "未登録"}</Text>
+            </Text>
+          </div>
+          <VStack spacing={4} align="stretch" mt={4}>
             {/* 出勤情報と統計の枠 */}
             <Box 
               border="1px solid #ccc" 
               borderRadius="2xl" 
               p={4}
             >
-              {/* 出退勤時刻の表示エリア */}
-              <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
-                <Text fontSize={"xl"} fontWeight={"bold"}>
-                  出勤: <Text as="span" fontSize="3xl" letterSpacing="wider">{attendanceTimeStr ? attendanceTimeStr : "未登録"}</Text>
-                </Text>
-                <Text fontSize={"xl"} fontWeight={"bold"} ml={6}>
-                  退勤: <Text as="span" fontSize="3xl" letterSpacing="wider">{leavingTimeStr ? leavingTimeStr : "未登録"}</Text>
-                </Text>
-              </div>
-
               <Box mt={4}>
                 {student ? (
                   <VStack spacing={4}>
