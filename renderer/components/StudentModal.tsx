@@ -846,60 +846,24 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         bg="white" 
         borderRadius="3xl"
         >
-        {/* <Text fontSize="xl" fontWeight="bold" textAlign="center" mb={4}>
-          年間出勤カレンダー
-        </Text> */}
         {student && student.id && (
           <Box 
           border="1px solid #ccc" 
           borderRadius="2xl" 
-          p={4}
+          p={3}
           height="100%"
-          overflowY="auto"
-          css={{
-            '&::-webkit-scrollbar': {
-            width: '12px',
-            display: 'block',
-            },
-            '&::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
-            borderRadius: '6px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-            background: '#888',
-            borderRadius: '6px',
-            border: '2px solid #f1f1f1',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-            background: '#555',
-            },
-            '-webkit-overflow-scrolling': 'touch',
-            'scrollbar-width': 'auto',
-            'scrollbar-color': '#888 #f1f1f1',
-          }}
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          overflow="hidden" // オーバーフローを隠す
           >
-          <YearlyAttendanceCalendar studentId={student.id} />
-          
-          {/* 追加のコンテンツをここに配置
-          <Box mt={6} p={4} border="1px solid #e0e0e0" borderRadius="xl">
-            <Text fontSize="lg" fontWeight="bold" mb={3}>
-            出勤履歴詳細
-            </Text>
-            <Text fontSize="md">
-            このエリアには、さらに詳細な出勤情報や統計データを表示できます。
-            学生の出勤パターン分析やフィードバックなどを追加できます。
-            </Text>
-          </Box>
-          
-          <Box mt={6} p={4} border="1px solid #e0e0e0" borderRadius="xl">
-            <Text fontSize="lg" fontWeight="bold" mb={3}>
-            メモ・備考
-            </Text>
-            <Text fontSize="md">
-            この学生に関する特記事項や指導内容などのメモを表示するエリアです。
-            将来的には編集機能も追加できます。
-            </Text>
-          </Box> */}
+            <Box 
+              height="100%" 
+              width="100%"
+              overflow="hidden" // スクロールバー非表示
+            >
+              <YearlyAttendanceCalendar studentId={student.id} />
+            </Box>
           </Box>
         )}
         </Box>

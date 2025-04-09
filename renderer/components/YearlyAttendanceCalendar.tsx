@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   VStack,
@@ -13,7 +13,10 @@ import {
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
+  IconButton,
+  Flex,
 } from '@chakra-ui/react';
+import { ChevronUpIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import Papa from 'papaparse';
 import { getCurrentTime, resetTime } from '../utils/timeManager';
 
@@ -52,6 +55,7 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   const [fiscalYear, setFiscalYear] = useState<number>(getCurrentFiscalYear());
   const [maxStayTime, setMaxStayTime] = useState<number>(0);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // 月の名前 - 年度順（4月から翌年3月）
   const monthNames = ['4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月', '1月', '2月', '3月'];
@@ -334,6 +338,22 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
     return `${hours}時間${minutes}分`;
   };
 
+  // スクロール関数
+  const scrollContent = (direction: 'up' | 'down') => {
+    if (contentRef.current) {
+      const scrollAmount = 200; // スクロール量を増やす
+      const currentScrollTop = contentRef.current.scrollTop;
+      const newScrollTop = direction === 'up' 
+        ? currentScrollTop - scrollAmount 
+        : currentScrollTop + scrollAmount;
+      
+      contentRef.current.scrollTo({
+        top: newScrollTop,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <Box textAlign="center" py={4}>
@@ -352,89 +372,165 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   }
 
   return (
-    <VStack spacing={4} align="stretch" w="100%" bg={bgColor} p={4} borderRadius="md">
-      {/* <Text fontSize="lg" fontWeight="bold" textAlign="center">
-        {fiscalYear}年度の出勤記録 ({fiscalYear}年4月〜{fiscalYear+1}年3月)
-      </Text> */}
-      
-      <Box w="100%">
-        <VStack spacing={2} align="stretch">
-          {monthNames.map((monthName, fiscalMonthIndex) => {
-            // 年度内の月から実際のカレンダー年と月を取得
-            const { year, month } = getActualYearMonth(fiscalYear, fiscalMonthIndex);
-            const calendar = generateMonthCalendar(year, month);
-            
-            return (
-              <VStack key={`${year}-${month}`} spacing={1} align="stretch">
-                <Text fontSize="sm" fontWeight="medium" mb={1}>
-                  {year}年{monthName}
-                </Text>
+    <Box position="relative" h="100%" w="100%" overflow="hidden">
+      <Box 
+        ref={contentRef}
+        height="calc(100% - 50px)" // スクロールボタンの高さ分を確保
+        overflowY="auto"
+        w="100%"
+        css={{
+          '&::-webkit-scrollbar': {
+            width: '0px', // スクロールバーを非表示に
+          }
+        }}
+      >
+        <VStack spacing={1} align="stretch" w="100%" bg={bgColor} p={2} borderRadius="md">
+          <Box w="100%">
+            <VStack spacing={1} align="stretch">
+              {monthNames.map((monthName, fiscalMonthIndex) => {
+                // 年度内の月から実際のカレンダー年と月を取得
+                const { year, month } = getActualYearMonth(fiscalYear, fiscalMonthIndex);
+                const calendar = generateMonthCalendar(year, month);
                 
-                <HStack spacing={0} mb={1} justify="space-between">
-                  {weekdayNames.map((name, i) => (
-                    <Text key={i} fontSize="xs" flex="1" textAlign="center">
-                      {name}
+                return (
+                  <VStack key={`${year}-${month}`} spacing={1} align="stretch" mb={2}>
+                    <Text fontSize="md" fontWeight="medium">
+                      {year}年{monthName}
                     </Text>
-                  ))}
-                </HStack>
-                
-                {calendar.map((week, weekIndex) => (
-                  <HStack key={weekIndex} spacing={1} justify="space-between">
-                    {week.map((day, dayIndex) => {
-                      if (!day.isValid) {
-                        return (
-                          <Box
-                            key={dayIndex}
-                            flex="1"
-                            minH="30px"
-                            visibility="hidden"
-                          />
-                        );
-                      }
-                      
-                      const level = day.data?.level || 0;
-                      const stayTime = day.data?.stayTimeSeconds || 0;
-                      const dateInfo = `${month}月${day.day}日: ${stayTime > 0 ? formatStayTime(stayTime) : '出勤なし'}`;
-                      
-                      return (
-                        <Popover
-                          key={dayIndex}
-                          isOpen={selectedDay === day.date}
-                          onClose={() => setSelectedDay(null)}
-                        >
-                            <PopoverTrigger>
-                            <Box
-                              flex="1"
-                              minH="30px"
-                              bg={COLOR_LEVELS[level]}
-                              borderRadius="2px"
-                              cursor="pointer"
-                              onClick={() => setSelectedDay(day.date)}
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                              border="1px solid rgba(27, 31, 35, 0.06)"
-                              _hover={{ border: "1px solid rgba(27, 31, 35, 0.2)" }}
-                            />
-                            </PopoverTrigger>
-                          <PopoverContent>
-                            <PopoverArrow />
-                            <PopoverCloseButton />
-                            <PopoverBody>
-                              {dateInfo}
-                            </PopoverBody>
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    })}
-                  </HStack>
-                ))}
-              </VStack>
-            );
-          })}
+                    
+                    <HStack spacing={0} justify="space-between">
+                      {weekdayNames.map((name, i) => (
+                        <Text key={i} fontSize="xs" flex="1" textAlign="center">
+                          {name}
+                        </Text>
+                      ))}
+                    </HStack>
+                    
+                    {calendar.map((week, weekIndex) => (
+                      <HStack key={weekIndex} spacing={1} justify="space-between">
+                        {week.map((day, dayIndex) => {
+                          if (!day.isValid) {
+                            return (
+                              <Box
+                                key={dayIndex}
+                                flex="1"
+                                minH="30px"
+                                visibility="hidden"
+                              />
+                            );
+                          }
+                          
+                          const level = day.data?.level || 0;
+                          const stayTime = day.data?.stayTimeSeconds || 0;
+                          const dateInfo = `${month}月${day.day}日: ${stayTime > 0 ? formatStayTime(stayTime) : '出勤なし'}`;
+                          
+                          return (
+                            <Popover
+                              key={dayIndex}
+                              isOpen={selectedDay === day.date}
+                              onClose={() => setSelectedDay(null)}
+                            >
+                              <PopoverTrigger>
+                                <Box
+                                  flex="1"
+                                  minH="30px"
+                                  bg={COLOR_LEVELS[level]}
+                                  borderRadius="2px"
+                                  cursor="pointer"
+                                  onClick={() => setSelectedDay(day.date)}
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                  border="1px solid rgba(27, 31, 35, 0.06)"
+                                  _hover={{ border: "1px solid rgba(27, 31, 35, 0.2)" }}
+                                />
+                              </PopoverTrigger>
+                              <PopoverContent>
+                                <PopoverArrow />
+                                <PopoverCloseButton />
+                                <PopoverBody>
+                                  {dateInfo}
+                                </PopoverBody>
+                              </PopoverContent>
+                            </Popover>
+                          );
+                        })}
+                      </HStack>
+                    ))}
+                  </VStack>
+                );
+              })}
+            </VStack>
+          </Box>
         </VStack>
       </Box>
-    </VStack>
+        
+        {/* タッチ操作用スクロールボタン */}
+        <Flex 
+        position="absolute" 
+        bottom="0" 
+        left="0"
+        right="0"
+        justifyContent="center" 
+        zIndex={10}
+        bg="rgba(255,255,255,0.8)"
+        borderTopRadius="md"
+        boxShadow="0 -2px 5px rgba(0,0,0,0.1)"
+        padding="2px"
+        height="40px"
+        >
+        <IconButton
+          aria-label="一番上にスクロール"
+          icon={<ChevronUpIcon boxSize={6} transform="rotate(45deg)" />}
+          onClick={() => {
+          if (contentRef.current) {
+            contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          }}
+          size="md"
+          colorScheme="blue"
+          variant="ghost"
+          isRound
+          mr={2}
+        />
+        <IconButton
+          aria-label="上にスクロール"
+          icon={<ChevronUpIcon boxSize={6} />}
+          onClick={() => scrollContent('up')}
+          size="md"
+          colorScheme="blue"
+          variant="ghost"
+          isRound
+          mr={2}
+        />
+        <IconButton
+          aria-label="下にスクロール"
+          icon={<ChevronDownIcon boxSize={6} />}
+          onClick={() => scrollContent('down')}
+          size="md"
+          colorScheme="blue"
+          variant="ghost"
+          isRound
+          mr={2}
+        />
+        <IconButton
+          aria-label="一番下にスクロール"
+          icon={<ChevronDownIcon boxSize={6} transform="rotate(45deg)" />}
+          onClick={() => {
+          if (contentRef.current) {
+            contentRef.current.scrollTo({ 
+            top: contentRef.current.scrollHeight, 
+            behavior: 'smooth' 
+            });
+          }
+          }}
+          size="md"
+          colorScheme="blue"
+          variant="ghost"
+          isRound
+        />
+        </Flex>
+    </Box>
   );
 };
 
