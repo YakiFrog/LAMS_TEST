@@ -6,18 +6,24 @@ import {
   Text,
   Tooltip,
   Spinner,
-  useColorModeValue
+  useColorModeValue,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  PopoverArrow,
+  PopoverCloseButton,
 } from '@chakra-ui/react';
 import Papa from 'papaparse';
 import { getCurrentTime, resetTime } from '../utils/timeManager';
 
-// 色の強度レベル（滞在時間に応じて）
+// 色の強度レベル（滞在時間に応じて）- GitHub風の赤色グラデーション
 const COLOR_LEVELS = [
   'rgb(235, 237, 240)', // レベル0: 出勤なし
-  'rgb(172, 213, 242)', // レベル1: 少し
-  'rgb(127, 168, 201)', // レベル2: やや少なめ
-  'rgb(82, 123, 160)',  // レベル3: 中程度
-  'rgb(37, 78, 119)'    // レベル4: 長時間
+  'rgb(255, 200, 200)', // レベル1: 少し
+  'rgb(255, 150, 150)', // レベル2: やや少なめ
+  'rgb(255, 100, 100)', // レベル3: 中程度
+  'rgb(200, 0, 0)'      // レベル4: 長時間
 ];
 
 // 滞在時間のしきい値（秒単位）
@@ -43,11 +49,12 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   const [calendarData, setCalendarData] = useState<Map<string, CalendarDataType>>(new Map());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [year, setYear] = useState<number>(getCurrentTime().getFullYear());
+  const [fiscalYear, setFiscalYear] = useState<number>(getCurrentFiscalYear());
   const [maxStayTime, setMaxStayTime] = useState<number>(0);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  // 月の名前
-  const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+  // 月の名前 - 年度順（4月から翌年3月）
+  const monthNames = ['4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月', '1月', '2月', '3月'];
   
   // 曜日の名前（月〜日）
   const weekdayNames = ['月', '火', '水', '木', '金', '土', '日'];
@@ -56,17 +63,53 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
 
+  // 現在の年度を取得する関数
+  function getCurrentFiscalYear(): number {
+    const now = getCurrentTime();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // JavaScriptの月は0からはじまるので+1
+    
+    // 3月以降は現在の年が年度、1-2月は前年が年度
+    return month >= 3 ? year : year - 1;
+  }
+
+  // 年度から実際の年と月を計算する関数
+  function getActualYearMonth(fiscalYear: number, fiscalMonth: number): { year: number, month: number } {
+    // fiscalMonthは0-11で、0が4月、11が翌年3月を表す
+    const calendarMonth = (fiscalMonth + 3) % 12 + 1; // 1-12の実際の月に変換
+    const calendarYear = fiscalMonth >= 9 ? fiscalYear + 1 : fiscalYear; // 1-3月は次の年
+    
+    return { year: calendarYear, month: calendarMonth };
+  }
+
   useEffect(() => {
     const fetchAttendanceData = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        // データを取得
-        const yearData = await getYearlyAttendanceData(studentId, year);
-        setCalendarData(yearData.data);
-        setMaxStayTime(yearData.maxStayTime);
+        // データを取得 - 年度内の全ての月
+        const dataMap = new Map<string, CalendarDataType>();
+        let maxTime = 0;
         
+        // 年度の4月から翌年3月までのデータを取得
+        for (let i = 0; i < 12; i++) {
+          const { year, month } = getActualYearMonth(fiscalYear, i);
+          const monthData = await getMonthAttendanceData(studentId, year, month);
+          
+          // データをマージ
+          monthData.data.forEach((value, key) => {
+            dataMap.set(key, value);
+          });
+          
+          // 最大滞在時間を更新
+          if (monthData.maxStayTime > maxTime) {
+            maxTime = monthData.maxStayTime;
+          }
+        }
+        
+        setCalendarData(dataMap);
+        setMaxStayTime(maxTime);
       } catch (err) {
         console.error('年間出勤データの取得エラー:', err);
         setError('出勤データの読み込みに失敗しました');
@@ -78,12 +121,13 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
     if (studentId) {
       fetchAttendanceData();
     }
-  }, [studentId, year]);
+  }, [studentId, fiscalYear]);
 
-  // 年間出勤データを取得する関数
-  const getYearlyAttendanceData = async (
+  // 月ごとの出勤データを取得する関数
+  const getMonthAttendanceData = async (
     studentId: string, 
-    year: number
+    year: number,
+    month: number
   ): Promise<{ data: Map<string, CalendarDataType>, maxStayTime: number }> => {
     const dataMap = new Map<string, CalendarDataType>();
     let maxTime = 0;
@@ -101,73 +145,70 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
     }
 
     try {
-      // 当該年の各月のCSVファイルを確認
-      for (let month = 1; month <= 12; month++) {
-        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-        const fileName = `attendance_${monthKey}.csv`;
-        const filePath = `${exportPath}/${fileName}`;
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const fileName = `attendance_${monthKey}.csv`;
+      const filePath = `${exportPath}/${fileName}`;
+      
+      // ファイルが存在するか確認
+      const exists = await window.electron.fileExists(filePath);
+      
+      if (exists.exists) {
+        console.log(`CSVファイルが見つかりました: ${filePath}`);
+        const csvContent = await window.electron.readFile(filePath);
         
-        // ファイルが存在するか確認
-        const exists = await window.electron.fileExists(filePath);
-        
-        if (exists.exists) {
-          console.log(`CSVファイルが見つかりました: ${filePath}`);
-          const csvContent = await window.electron.readFile(filePath);
+        if (csvContent) {
+          // CSVをパース
+          const parsedData = Papa.parse(csvContent, { header: true });
           
-          if (csvContent) {
-            // CSVをパース
-            const parsedData = Papa.parse(csvContent, { header: true });
+          if (parsedData.data && Array.isArray(parsedData.data)) {
+            // 学生IDでフィルタリング
+            const studentRecords = parsedData.data.filter((record: any) => 
+              record['学生ID'] === studentId && record['日付']
+            );
             
-            if (parsedData.data && Array.isArray(parsedData.data)) {
-              // 学生IDでフィルタリング
-              const studentRecords = parsedData.data.filter((record: any) => 
-                record['学生ID'] === studentId && record['日付']
-              );
-              
-              // 各レコードを処理
-              studentRecords.forEach((record: any) => {
-                try {
-                  if (!record['日付']) return;
-                  
-                  // MM/DD形式を YYYY-MM-DD 形式に変換
-                  const [recordMonth, recordDay] = record['日付'].split('/').map(Number);
-                  if (isNaN(recordMonth) || isNaN(recordDay)) return;
-                  
-                  const dateStr = `${year}-${String(recordMonth).padStart(2, '0')}-${String(recordDay).padStart(2, '0')}`;
-                  
-                  // 滞在時間を取得
-                  const stayTimeSeconds = parseInt(record['滞在時間（秒）'] || '0');
-                  
-                  // 最大滞在時間を更新
-                  if (stayTimeSeconds > maxTime) {
-                    maxTime = stayTimeSeconds;
-                  }
-                  
-                  // 強度レベルを計算
-                  let level = 0;
-                  for (let i = STAY_TIME_THRESHOLDS.length - 1; i >= 0; i--) {
-                    if (stayTimeSeconds >= STAY_TIME_THRESHOLDS[i]) {
-                      level = i;
-                      break;
-                    }
-                  }
-                  
-                  // データマップに追加
-                  dataMap.set(dateStr, {
-                    date: dateStr,
-                    stayTimeSeconds,
-                    level
-                  });
-                } catch (e) {
-                  console.error('日付解析エラー:', e);
+            // 各レコードを処理
+            studentRecords.forEach((record: any) => {
+              try {
+                if (!record['日付']) return;
+                
+                // MM/DD形式を YYYY-MM-DD 形式に変換
+                const [recordMonth, recordDay] = record['日付'].split('/').map(Number);
+                if (isNaN(recordMonth) || isNaN(recordDay)) return;
+                
+                const dateStr = `${year}-${String(recordMonth).padStart(2, '0')}-${String(recordDay).padStart(2, '0')}`;
+                
+                // 滞在時間を取得
+                const stayTimeSeconds = parseInt(record['滞在時間（秒）'] || '0');
+                
+                // 最大滞在時間を更新
+                if (stayTimeSeconds > maxTime) {
+                  maxTime = stayTimeSeconds;
                 }
-              });
-            }
+                
+                // 強度レベルを計算
+                let level = 0;
+                for (let i = STAY_TIME_THRESHOLDS.length - 1; i >= 0; i--) {
+                  if (stayTimeSeconds >= STAY_TIME_THRESHOLDS[i]) {
+                    level = i;
+                    break;
+                  }
+                }
+                
+                // データマップに追加
+                dataMap.set(dateStr, {
+                  date: dateStr,
+                  stayTimeSeconds,
+                  level
+                });
+              } catch (e) {
+                console.error('日付解析エラー:', e);
+              }
+            });
           }
         }
       }
       
-      // ローカルストレージからも当日のデータを取得して追加
+      // ローカルストレージからも当日のデータを確認
       const storedAttendanceStates = localStorage.getItem('attendanceStates');
       if (storedAttendanceStates) {
         const attendanceStates = JSON.parse(storedAttendanceStates);
@@ -179,9 +220,8 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
             ? new Date(studentState.attendanceTime) 
             : new Date(studentState.leavingTime);
           
-          // 現在の年と一致するかチェック
-          if (date.getFullYear() === year) {
-            const month = date.getMonth() + 1;
+          // 現在の年と月と一致するかチェック
+          if (date.getFullYear() === year && date.getMonth() + 1 === month) {
             const day = date.getDate();
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
@@ -214,8 +254,8 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
       
       return { data: dataMap, maxStayTime: maxTime };
     } catch (error) {
-      console.error('年間出勤データ取得エラー:', error);
-      throw error;
+      console.error('月間出勤データ取得エラー:', error);
+      return { data: dataMap, maxStayTime: maxTime };
     }
   };
 
@@ -313,58 +353,40 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
 
   return (
     <VStack spacing={4} align="stretch" w="100%" bg={bgColor} p={4} borderRadius="md">
-      <Text fontSize="lg" fontWeight="bold" textAlign="center">
-        {year}年の出勤記録
-      </Text>
+      {/* <Text fontSize="lg" fontWeight="bold" textAlign="center">
+        {fiscalYear}年度の出勤記録 ({fiscalYear}年4月〜{fiscalYear+1}年3月)
+      </Text> */}
       
-      <HStack spacing={2} justify="center" mb={2}>
-        {[...Array(5)].map((_, i) => (
-          <HStack key={i} align="center">
-            <Box
-              w="12px"
-              h="12px"
-              bg={COLOR_LEVELS[i]}
-              borderRadius="sm"
-            />
-            <Text fontSize="xs">
-              {i === 0 ? '0' : 
-               i === 1 ? '~30分' : 
-               i === 2 ? '~1時間' : 
-               i === 3 ? '~3時間' : '6時間~'}
-            </Text>
-          </HStack>
-        ))}
-      </HStack>
-      
-      <Box overflowX="auto">
-        <HStack spacing={2} align="start">
-          {monthNames.map((monthName, monthIndex) => {
-            const month = monthIndex + 1;
+      <Box w="100%">
+        <VStack spacing={2} align="stretch">
+          {monthNames.map((monthName, fiscalMonthIndex) => {
+            // 年度内の月から実際のカレンダー年と月を取得
+            const { year, month } = getActualYearMonth(fiscalYear, fiscalMonthIndex);
             const calendar = generateMonthCalendar(year, month);
             
             return (
-              <VStack key={month} spacing={1} align="start">
-                <Text fontSize="xs" fontWeight="medium" mb={1}>
-                  {monthName}
+              <VStack key={`${year}-${month}`} spacing={1} align="stretch">
+                <Text fontSize="sm" fontWeight="medium" mb={1}>
+                  {year}年{monthName}
                 </Text>
                 
-                <HStack spacing={0} mb={1}>
+                <HStack spacing={0} mb={1} justify="space-between">
                   {weekdayNames.map((name, i) => (
-                    <Text key={i} fontSize="6px" width="14px" textAlign="center">
-                      {i === 0 || i === 6 ? name : ''}
+                    <Text key={i} fontSize="xs" flex="1" textAlign="center">
+                      {name}
                     </Text>
                   ))}
                 </HStack>
                 
                 {calendar.map((week, weekIndex) => (
-                  <HStack key={weekIndex} spacing="2px">
+                  <HStack key={weekIndex} spacing={1} justify="space-between">
                     {week.map((day, dayIndex) => {
                       if (!day.isValid) {
                         return (
                           <Box
                             key={dayIndex}
-                            w="12px"
-                            h="12px"
+                            flex="1"
+                            minH="30px"
                             visibility="hidden"
                           />
                         );
@@ -372,24 +394,37 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
                       
                       const level = day.data?.level || 0;
                       const stayTime = day.data?.stayTimeSeconds || 0;
+                      const dateInfo = `${month}月${day.day}日: ${stayTime > 0 ? formatStayTime(stayTime) : '出勤なし'}`;
                       
                       return (
-                        <Tooltip
+                        <Popover
                           key={dayIndex}
-                          label={`${month}月${day.day}日: ${stayTime > 0 ? formatStayTime(stayTime) : '出勤なし'}`}
-                          placement="top"
-                          hasArrow
+                          isOpen={selectedDay === day.date}
+                          onClose={() => setSelectedDay(null)}
                         >
-                          <Box
-                            w="12px"
-                            h="12px"
-                            bg={COLOR_LEVELS[level]}
-                            borderRadius="sm"
-                            _hover={{ transform: 'scale(1.2)', transition: 'transform 0.2s' }}
-                            transition="all 0.2s"
-                            cursor="pointer"
-                          />
-                        </Tooltip>
+                            <PopoverTrigger>
+                            <Box
+                              flex="1"
+                              minH="30px"
+                              bg={COLOR_LEVELS[level]}
+                              borderRadius="2px"
+                              cursor="pointer"
+                              onClick={() => setSelectedDay(day.date)}
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              border="1px solid rgba(27, 31, 35, 0.06)"
+                              _hover={{ border: "1px solid rgba(27, 31, 35, 0.2)" }}
+                            />
+                            </PopoverTrigger>
+                          <PopoverContent>
+                            <PopoverArrow />
+                            <PopoverCloseButton />
+                            <PopoverBody>
+                              {dateInfo}
+                            </PopoverBody>
+                          </PopoverContent>
+                        </Popover>
                       );
                     })}
                   </HStack>
@@ -397,7 +432,7 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
               </VStack>
             );
           })}
-        </HStack>
+        </VStack>
       </Box>
     </VStack>
   );

@@ -743,29 +743,45 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   }, [student, attendanceStates]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size="4xl">
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay/>
-      <ModalContent maxHeight="80%" borderRadius="3xl" pb={4}>
-        {/* ヘッダー: 学生名またはデフォルトのタイトルが表示されます */}
-        <ModalHeader
-          fontSize={"2xl"}
-          fontWeight={"bold"}
-          justifyContent="center"
-          textAlign="center"
-          display="flex"
-          flexDirection="column" // 追加: 縦方向に並べることでIDを改行表示
-          mt={2}
-          mb={0}
-        >
+      <ModalContent 
+        borderRadius="3xl" 
+        outline="10px solid red" outlineOffset="5px"
+        bg="none"
+      >
+        {/* 左側のコンテンツ */}
+        <Box p={4} bg="white" borderRadius="3xl">
+          {/* モーダルを閉じるボタン - 左側コンテンツの右上に固定 */}
+          <Box position="relative">
+            <ModalCloseButton 
+            size="lg" 
+            position="absolute"
+            right={1} 
+            top={1} 
+            zIndex={1}
+            border={"1px solid red"} 
+            borderRadius="xl" 
+            bg="red.500" 
+            _hover={{ bg: "red.600" }} 
+            color="white"
+            />
+          </Box>
+          <Box
+            fontSize={"2xl"}
+            fontWeight={"bold"}
+            justifyContent="center"
+            textAlign="center"
+            display="flex"
+            flexDirection="column"
+            mt={2}
+            mb={4}
+          >
             {student ? student.name : "学生情報"}
             <Text fontSize={"sm"} fontWeight={"bold"} color={"gray.500"} mt={0}>
               ID: {student?.id}
             </Text>
-        </ModalHeader>
-        {/* モーダルを閉じるボタン */}
-        <ModalCloseButton size="lg" right={6} top={4} border={"1px solid red"} borderRadius="xl" bg="red.500" _hover={{ bg: "red.600" }} color="white"/>
-
-        <ModalBody p={4}>
+          </Box>
           <VStack spacing={4} align="stretch">
             {/* 出勤情報と統計の枠 */}
             <Box 
@@ -801,50 +817,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
                 滞在時間: <Text as="span" fontSize="3xl">{totalStayTimeStr ? totalStayTimeStr : "未登録"}</Text>
               </Text>
             </Box>
-            
-            {/* 年間出勤カレンダーの枠 */}
-            {student && student.id && (
-              <Box 
-                border="1px solid #ccc" 
-                borderRadius="2xl" 
-                p={4}
-              >
-                <Text fontSize="xl" fontWeight="bold" textAlign="center" mb={4}>
-                  年間出勤カレンダー
-                </Text>
-                <Box 
-                  overflowX="auto"
-                  whiteSpace="nowrap"
-                  pb={4}
-                  css={{
-                    /* カスタムスクロールバースタイル */
-                    '&::-webkit-scrollbar': {
-                      height: '12px',
-                      display: 'block',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f1f1f1',
-                      borderRadius: '6px',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#888',
-                      borderRadius: '6px',
-                      border: '2px solid #f1f1f1',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      background: '#555',
-                    },
-                    /* スクロールバーを常に表示 */
-                    '-webkit-overflow-scrolling': 'touch',
-                    'scrollbar-width': 'auto',
-                    'scrollbar-color': '#888 #f1f1f1',
-                  }}
-                >
-                  <YearlyAttendanceCalendar studentId={student.id} />
-                </Box>
-              </Box>
-            )}
-            
+
             {/* 出退勤ボタン */}
             <Button
               colorScheme={student && getAttendanceState(student.id).isAttending ? "red" : "green"}
@@ -860,7 +833,76 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
               {student && getAttendanceState(student.id).isAttending ? "退勤" : "出勤"}
             </Button>
           </VStack>
-        </ModalBody>
+        </Box>
+
+        {/* 右側のコンテンツ */}
+        <Box 
+        position="absolute"
+        top="0"
+        right="-80%" 
+        width="70%"
+        height="100%"
+        p={4} 
+        bg="white" 
+        borderRadius="3xl"
+        >
+        {/* <Text fontSize="xl" fontWeight="bold" textAlign="center" mb={4}>
+          年間出勤カレンダー
+        </Text> */}
+        {student && student.id && (
+          <Box 
+          border="1px solid #ccc" 
+          borderRadius="2xl" 
+          p={4}
+          height="100%"
+          overflowY="auto"
+          css={{
+            '&::-webkit-scrollbar': {
+            width: '12px',
+            display: 'block',
+            },
+            '&::-webkit-scrollbar-track': {
+            background: '#f1f1f1',
+            borderRadius: '6px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+            background: '#888',
+            borderRadius: '6px',
+            border: '2px solid #f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+            background: '#555',
+            },
+            '-webkit-overflow-scrolling': 'touch',
+            'scrollbar-width': 'auto',
+            'scrollbar-color': '#888 #f1f1f1',
+          }}
+          >
+          <YearlyAttendanceCalendar studentId={student.id} />
+          
+          {/* 追加のコンテンツをここに配置
+          <Box mt={6} p={4} border="1px solid #e0e0e0" borderRadius="xl">
+            <Text fontSize="lg" fontWeight="bold" mb={3}>
+            出勤履歴詳細
+            </Text>
+            <Text fontSize="md">
+            このエリアには、さらに詳細な出勤情報や統計データを表示できます。
+            学生の出勤パターン分析やフィードバックなどを追加できます。
+            </Text>
+          </Box>
+          
+          <Box mt={6} p={4} border="1px solid #e0e0e0" borderRadius="xl">
+            <Text fontSize="lg" fontWeight="bold" mb={3}>
+            メモ・備考
+            </Text>
+            <Text fontSize="md">
+            この学生に関する特記事項や指導内容などのメモを表示するエリアです。
+            将来的には編集機能も追加できます。
+            </Text>
+          </Box> */}
+          </Box>
+        )}
+        </Box>
       </ModalContent>
     </Modal>
   );
