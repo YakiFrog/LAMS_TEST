@@ -26,13 +26,16 @@ import {
   PopoverCloseButton,
   useDisclosure,
   Flex,
-  useTheme
+  useTheme,
+  IconButton
 } from '@chakra-ui/react';
 import { keyframes, Global } from '@emotion/react';
 import Papa from 'papaparse';
 import { getCurrentTime, getJapanTime, formatStayTime } from '../utils/timeManager';
 import { fetchCurrentMonthAttendance } from '../utils/attendanceAnalyzer';
 import YearlyAttendanceCalendar from './YearlyAttendanceCalendar';
+import IconSelector, { getIconById } from './IconSelector';
+import { FaUser, FaCog } from 'react-icons/fa';
 
 // パルスアニメーションをキーフレームとして定義
 const pulseKeyframes = keyframes`
@@ -802,6 +805,78 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
     }
   }, [student, attendanceStates]);
 
+  // アイコン設定関連のstate
+  const [iconSettingOpen, setIconSettingOpen] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+  
+  // 学生IDからアイコン設定を取得する関数
+  const getStudentIcon = (studentId: string | null): string | null => {
+    if (!studentId) return null;
+    
+    try {
+      const iconsData = localStorage.getItem('studentIcons');
+      if (iconsData) {
+        const icons = JSON.parse(iconsData);
+        return icons[studentId] || null;
+      }
+    } catch (error) {
+      console.error('アイコン設定の読み込みエラー:', error);
+    }
+    
+    return null;
+  };
+  
+  // 学生のアイコン設定を保存する関数
+  const saveStudentIcon = (studentId: string, iconId: string) => {
+    try {
+      const iconsData = localStorage.getItem('studentIcons');
+      const icons = iconsData ? JSON.parse(iconsData) : {};
+      
+      icons[studentId] = iconId;
+      localStorage.setItem('studentIcons', JSON.stringify(icons));
+      
+      toast({
+        title: "アイコン設定を保存しました",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('アイコン設定の保存エラー:', error);
+      toast({
+        title: "アイコン設定の保存に失敗しました",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+  
+  // モーダル開閉時に選択中のアイコンを更新
+  useEffect(() => {
+    if (isOpen && student) {
+      const icon = getStudentIcon(student.id);
+      setSelectedIcon(icon);
+    }
+  }, [isOpen, student]);
+  
+  // アイコン設定を保存して閉じる
+  const handleSaveIcon = () => {
+    if (student && selectedIcon) {
+      saveStudentIcon(student.id, selectedIcon);
+      setIconSettingOpen(false);
+    }
+  };
+
+  // アイコン設定をクリア
+  const handleClearIcon = () => {
+    if (student) {
+      setSelectedIcon(null);
+      saveStudentIcon(student.id, '');
+      setIconSettingOpen(false);
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay/>
@@ -826,6 +901,25 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             _hover={{ bg: "red.600" }} 
             color="white"
             />
+            
+            {/* アイコン設定ボタン - 右上に追加 */}
+            <Tooltip label="アイコン設定">
+              <IconButton
+              aria-label="アイコン設定"
+              icon={<FaCog />}
+              position="absolute"
+              right={14}
+              top={1}
+              size="md"
+              colorScheme="blue"
+              variant="ghost"
+              borderRadius="xl"
+              bg="blue.500"
+              color="white"
+              _hover={{ bg: "blue.600" }}
+              onClick={() => setIconSettingOpen(true)}
+              />
+            </Tooltip>
           </Box>
           <Box
             fontSize={"2xl"}
@@ -837,7 +931,18 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             mt={2}
             mb={4}
           >
-            {student ? student.name : "学生情報"}
+            {/* 学生名の横にアイコン表示 */}
+            <Flex justifyContent="center" alignItems="center">
+              {student && getStudentIcon(student.id) ? (
+                React.createElement(
+                  getIconById(getStudentIcon(student.id)) || FaUser, 
+                  { size: 24, style: { marginRight: '8px' } }
+                )
+              ) : (
+                <FaUser size={24} style={{ marginRight: '8px', opacity: 0.5 }} />
+              )}
+              <Text>{student ? student.name : "学生情報"}</Text>
+            </Flex>
             <Text fontSize={"sm"} fontWeight={"bold"} color={"gray.500"} mt={0}>
               ID: {student?.id}
             </Text>
@@ -893,6 +998,38 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             </Button>
           </VStack>
         </Box>
+
+        {/* アイコン設定モーダル */}
+        <Modal isOpen={iconSettingOpen} onClose={() => setIconSettingOpen(false)} size="md">
+          <ModalOverlay />
+          <ModalContent borderRadius="xl">
+            <ModalHeader>アイコン設定</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <IconSelector 
+                selectedIcon={selectedIcon || ''} 
+                onSelectIcon={setSelectedIcon} 
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button 
+                colorScheme="red" 
+                variant="outline" 
+                mr={3} 
+                onClick={handleClearIcon}
+              >
+                クリア
+              </Button>
+              <Button 
+                colorScheme="blue" 
+                onClick={handleSaveIcon}
+                isDisabled={!selectedIcon}
+              >
+                保存
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
 
         {/* 右側のコンテンツ */}
         <Box 

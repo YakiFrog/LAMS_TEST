@@ -7,6 +7,8 @@ import { getCurrentTime, resetTime, formatStayTime, formatStayTimeCompact } from
 import { getYearlyAttendanceDays } from '../utils/attendanceAnalyzer';
 import { keyframes } from '@emotion/react';
 import Papa from 'papaparse';
+import { getIconById } from './IconSelector';
+import { FaUser } from 'react-icons/fa';
 
 // ラベル切り替えアニメーションの定義
 const fadeInOut = keyframes`
@@ -81,6 +83,9 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
   const [isClient, setIsClient] = useState(false);
   // ズームレベルを内部で計算する
   const contentScale = zoomLevel / 100;
+
+  // アイコンデータを取得するstate
+  const [studentIcons, setStudentIcons] = useState<{[studentId: string]: string}>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -551,6 +556,44 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
     }
   }, [attendanceStates, onAttendanceChange]);
 
+  // ローカルストレージからアイコン設定を読み込み
+  useEffect(() => {
+    const loadIcons = () => {
+      try {
+        const iconsData = localStorage.getItem('studentIcons');
+        if (iconsData) {
+          setStudentIcons(JSON.parse(iconsData));
+        }
+      } catch (error) {
+        console.error('アイコン設定の読み込みエラー:', error);
+      }
+    };
+    
+    // 初回読み込み
+    loadIcons();
+    
+    // localStorageの変更を監視
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'studentIcons') {
+        loadIcons();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // カスタムイベントを使用して同一ウィンドウでの更新を検知
+    const handleCustomEvent = () => {
+      loadIcons();
+    };
+    
+    window.addEventListener('studentIconsUpdated', handleCustomEvent);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('studentIconsUpdated', handleCustomEvent);
+    };
+  }, []);
+
   const onClose = () => {
     // モーダルを閉じる処理
     setIsOpen(false);
@@ -638,6 +681,10 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   const attendanceDays = attendanceDaysMap[student.id] || 0;
                   const totalStayTime = totalStayTimeMap[student.id] || 0;
                   const isFrequent = attendanceDays > (maxAttendanceDays * 0.7); // 70%以上なら頻繁とみなす
+
+                  // 学生のアイコンを取得
+                  const studentIconId = studentIcons[student.id];
+                  const StudentIcon = studentIconId ? getIconById(studentIconId) : null;
                   
                   return (
                     <WrapItem 
@@ -695,6 +742,32 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         bg="white" // 頻繁な出勤者は薄紫色の背景
                         zIndex={1} // スタッキングコンテキストを明示的に設定
                       >
+                        {/* 学生のアイコンを右上に表示 */}
+                        {StudentIcon && (
+                          <Box
+                            position="absolute"
+                            top="-6px"
+                            right="-6px"
+                            bg="white"
+                            borderRadius="full"
+                            p={2}
+                            borderColor={
+                              attendanceStates[student.id]?.isAttending
+                                ? theme.colors.success[500] || "green.400"
+                                : attendanceStates[student.id]?.leavingTime
+                                ? theme.colors.secondary[500] || "red.400"
+                                : isFrequent ? theme.colors.accent[300] || "purple.300" : "gray.200"
+                            }
+                            boxShadow="0 2px 4px rgba(0, 0, 0, 0.5)"
+                            zIndex={3}
+                          >
+                            {React.createElement(StudentIcon, {
+                              size: 20 * scale,
+                              color: theme.colors.neutral[800] || "#2D3748"
+                            })}
+                          </Box>
+                        )}
+                        
                         {/* 出勤日数と累計滞在時間表示 - 日数が1以上の場合のみ表示 */}
                         {attendanceDaysMap[student.id] > 0 && (
                           <Badge
@@ -807,10 +880,16 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
       {isClient && (
         <StudentModal 
           isOpen={isOpen} 
-          onClose={onClose} 
+          onClose={() => {
+            onClose();
+            // アイコン変更後のリロードのため、カスタムイベントを発火
+            const event = new Event('studentIconsUpdated');
+            window.dispatchEvent(event);
+          }}
           student={selectedStudent} 
           attendanceStates={attendanceStates}
           setAttendanceStates={setAttendanceStates}
+          onAttendanceChange={onAttendanceChange ? () => onAttendanceChange(true) : undefined}
         />
       )}
     </>
