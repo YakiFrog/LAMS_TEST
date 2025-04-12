@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Box,
   VStack,
@@ -56,6 +56,9 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   const [maxStayTime, setMaxStayTime] = useState<number>(0);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [visibleMonths, setVisibleMonths] = useState<number[]>([]);
+  const [dataCache, setDataCache] = useState<Record<string, Map<string, CalendarDataType>>>({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // 月の名前 - 年度順（4月から翌年3月）
   const monthNames = ['4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月', '1月', '2月', '3月'];
@@ -86,49 +89,103 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
     return { year: calendarYear, month: calendarMonth };
   }
 
+  // 初期表示時に表示する月を設定
   useEffect(() => {
-    const fetchAttendanceData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    if (!isInitialized) {
+      // 現在の月を含む前後3か月のみを初期表示に設定
+      const currentMonth = new Date().getMonth(); // 0-11
+      const fiscalMonthIndex = (currentMonth + 9) % 12; // 4月始まりの年度での月インデックス
+      
+      const visibleIndices = [];
+      // 現在の月の前後2か月を表示対象に追加
+      for (let i = Math.max(0, fiscalMonthIndex - 2); i <= Math.min(11, fiscalMonthIndex + 2); i++) {
+        visibleIndices.push(i);
+      }
+      
+      setVisibleMonths(visibleIndices);
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
+
+  // データ取得ロジックをメモ化および最適化
+  const fetchAttendanceData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // 表示されている月のデータだけを取得
+      const dataMap = new Map<string, CalendarDataType>();
+      let maxTime = 0;
+      
+      const promises = visibleMonths.map(async (fiscalMonthIndex) => {
+        const { year, month } = getActualYearMonth(fiscalYear, fiscalMonthIndex);
+        const cacheKey = `${year}-${month}`;
         
-        // データを取得 - 年度内の全ての月
-        const dataMap = new Map<string, CalendarDataType>();
-        let maxTime = 0;
-        
-        // 年度の4月から翌年3月までのデータを取得
-        for (let i = 0; i < 12; i++) {
-          const { year, month } = getActualYearMonth(fiscalYear, i);
-          const monthData = await getMonthAttendanceData(studentId, year, month);
-          
-          // データをマージ
-          monthData.data.forEach((value, key) => {
-            dataMap.set(key, value);
-          });
-          
-          // 最大滞在時間を更新
-          if (monthData.maxStayTime > maxTime) {
-            maxTime = monthData.maxStayTime;
-          }
+        // キャッシュにデータがあればそれを使用
+        if (dataCache[cacheKey]) {
+          return { 
+            monthIndex: fiscalMonthIndex, 
+            data: dataCache[cacheKey], 
+            maxStayTime: Array.from(dataCache[cacheKey].values())
+              .reduce((max, item) => Math.max(max, item.stayTimeSeconds), 0)
+          };
         }
         
-        setCalendarData(dataMap);
-        setMaxStayTime(maxTime);
-      } catch (err) {
-        console.error('年間出勤データの取得エラー:', err);
-        setError('出勤データの読み込みに失敗しました');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    if (studentId) {
+        // なければデータを取得
+        const monthData = await getMonthAttendanceData(studentId, year, month);
+        
+        // キャッシュに保存
+        return { 
+          monthIndex: fiscalMonthIndex, 
+          data: monthData.data, 
+          maxStayTime: monthData.maxStayTime,
+          cacheKey
+        };
+      });
+      
+      // 並列でデータを取得
+      const results = await Promise.all(promises);
+      
+      // データをマージして状態を更新
+      const newCache = { ...dataCache };
+      
+      results.forEach(result => {
+        // データをマージ
+        result.data.forEach((value, key) => {
+          dataMap.set(key, value);
+        });
+        
+        // 最大滞在時間を更新
+        if (result.maxStayTime > maxTime) {
+          maxTime = result.maxStayTime;
+        }
+        
+        // キャッシュに追加
+        if (result.cacheKey) {
+          newCache[result.cacheKey] = result.data;
+        }
+      });
+      
+      setDataCache(newCache);
+      setCalendarData(dataMap);
+      setMaxStayTime(maxTime);
+    } catch (err) {
+      console.error('年間出勤データの取得エラー:', err);
+      setError('出勤データの読み込みに失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [studentId, fiscalYear, visibleMonths, dataCache]);
+
+  // visibleMonthsまたはfiscalYearが変わったときだけデータを取得
+  useEffect(() => {
+    if (studentId && visibleMonths.length > 0) {
       fetchAttendanceData();
     }
-  }, [studentId, fiscalYear]);
+  }, [studentId, visibleMonths, fiscalYear, fetchAttendanceData]);
 
-  // 月ごとの出勤データを取得する関数
-  const getMonthAttendanceData = async (
+  // 月ごとの出勤データを取得する関数の最適化 - パフォーマンスのためにメモ化
+  const getMonthAttendanceData = useCallback(async (
     studentId: string, 
     year: number,
     month: number
@@ -261,7 +318,7 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
       console.error('月間出勤データ取得エラー:', error);
       return { data: dataMap, maxStayTime: maxTime };
     }
-  };
+  }, []);
 
   // 日付から曜日を取得する関数
   const getDayOfWeek = (dateStr: string): number => {
@@ -285,7 +342,7 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   };
 
   // 特定の月のカレンダーデータを生成する関数
-  const generateMonthCalendar = (year: number, month: number) => {
+  const generateMonthCalendar = useCallback((year: number, month: number) => {
     const firstDayOfMonth = new Date(year, month - 1, 1);
     let firstDayOfWeek = firstDayOfMonth.getDay();
     firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // 0: 月曜, ..., 6: 日曜に変換
@@ -329,7 +386,7 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
     }
     
     return calendar;
-  };
+  }, [calendarData]);
 
   // 滞在時間を表示用の文字列に変換する関数
   const formatStayTime = (seconds: number): string => {
@@ -337,6 +394,50 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}時間${minutes}分`;
   };
+
+  // 指定した月を表示対象に追加
+  const addVisibleMonth = useCallback((fiscalMonthIndex: number) => {
+    if (!visibleMonths.includes(fiscalMonthIndex)) {
+      setVisibleMonths(prev => [...prev, fiscalMonthIndex].sort((a, b) => a - b));
+    }
+  }, [visibleMonths]);
+
+  // スクロールイベントの最適化
+  const handleScroll = useCallback(() => {
+    if (!contentRef.current) return;
+    
+    // スクロール位置に基づいて表示する月を動的に追加
+    const scrollPosition = contentRef.current.scrollTop;
+    const containerHeight = contentRef.current.clientHeight;
+    const scrollHeight = contentRef.current.scrollHeight;
+    
+    // スクロールが下部に近づいたら次の月を読み込む
+    if (scrollHeight - (scrollPosition + containerHeight) < 200) {
+      // 現在表示している最後の月の次の月を追加
+      const lastMonth = Math.max(...visibleMonths);
+      if (lastMonth < 11) { // 11が最大インデックス (3月)
+        addVisibleMonth(lastMonth + 1);
+      }
+    }
+    
+    // スクロールが上部に近づいたら前の月を読み込む
+    if (scrollPosition < 200) {
+      // 現在表示している最初の月の前の月を追加
+      const firstMonth = Math.min(...visibleMonths);
+      if (firstMonth > 0) { // 0が最小インデックス (4月)
+        addVisibleMonth(firstMonth - 1);
+      }
+    }
+  }, [visibleMonths, addVisibleMonth]);
+
+  // スクロールイベントの登録
+  useEffect(() => {
+    const ref = contentRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', handleScroll);
+      return () => ref.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
 
   // スクロール関数
   const scrollContent = (direction: 'up' | 'down') => {
@@ -388,6 +489,11 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
           <Box w="100%">
             <VStack spacing={1} align="stretch">
               {monthNames.map((monthName, fiscalMonthIndex) => {
+                // 表示対象の月だけレンダリング
+                if (!visibleMonths.includes(fiscalMonthIndex)) {
+                  return null;
+                }
+                
                 // 年度内の月から実際のカレンダー年と月を取得
                 const { year, month } = getActualYearMonth(fiscalYear, fiscalMonthIndex);
                 const calendar = generateMonthCalendar(year, month);
@@ -534,4 +640,4 @@ const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ stu
   );
 };
 
-export default YearlyAttendanceCalendar;
+export default React.memo(YearlyAttendanceCalendar);
