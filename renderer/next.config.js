@@ -41,6 +41,13 @@ module.exports = {
   // 開発モードでのパフォーマンス調整
   reactStrictMode: false,
   
+  // グローバルCSS設定
+  // 文字選択を禁止するグローバルスタイルを追加
+  experimental: {
+    // 実験的な機能を有効化（Next.js 12以降では不要になる可能性があります）
+    esmExternals: 'loose',
+  },
+  
   // 開発モードでのReactエラーを抑制
   onDemandEntries: {
     // period (in ms) where the server will keep pages in the buffer

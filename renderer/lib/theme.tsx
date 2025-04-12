@@ -174,6 +174,24 @@ const theme = extendTheme({
     initialColorMode: 'light',
     useSystemColorMode: false,
   },
+  // グローバルスタイルを追加
+  styles: {
+    global: {
+      'html, body': {
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+      },
+      // フォーム要素は選択可能に
+      'input, textarea, [contenteditable="true"]': {
+        userSelect: 'text',
+        WebkitUserSelect: 'text',
+        MozUserSelect: 'text',
+        msUserSelect: 'text',
+      }
+    }
+  },
   // カスタムテーマプロパティ
   customTheme: {
     calendarColors,

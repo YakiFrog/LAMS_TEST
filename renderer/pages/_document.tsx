@@ -24,6 +24,39 @@ class MyDocument extends Document {
                   try {
                     console.log('Environment setup script starting...');
                     
+                    // テキスト選択を無効化する
+                    document.addEventListener('DOMContentLoaded', function() {
+                      // CSSルールを動的に追加
+                      const style = document.createElement('style');
+                      style.innerHTML = \`
+                        * {
+                          -webkit-user-select: none;
+                          -moz-user-select: none;
+                          -ms-user-select: none;
+                          user-select: none;
+                        }
+                        input, textarea, [contenteditable="true"] {
+                          -webkit-user-select: text;
+                          -moz-user-select: text;
+                          -ms-user-select: text;
+                          user-select: text;
+                        }
+                      \`;
+                      document.head.appendChild(style);
+                      
+                      // マウスイベントでのテキスト選択を防止
+                      document.addEventListener('selectstart', function(e) {
+                        const target = e.target;
+                        const isInput = target.tagName === 'INPUT' || 
+                                        target.tagName === 'TEXTAREA' ||
+                                        target.getAttribute('contenteditable') === 'true';
+                        
+                        if (!isInput) {
+                          e.preventDefault();
+                        }
+                      });
+                    });
+                    
                     // __dirname と __filename のポリフィル
                     if (typeof window !== 'undefined') {
                       window.__dirname = '/';

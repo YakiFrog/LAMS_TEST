@@ -1,3 +1,5 @@
+import { disableTextSelection } from './timeManager';
+
 /**
  * アプリケーションのデフォルト設定を初期化するユーティリティ
  */
@@ -14,5 +16,26 @@ export const setupDefaultSettings = () => {
     localStorage.setItem('autoResizeOnAttendanceChange', 'true');
   }
 };
+
+// アプリケーション起動時の初期化処理
+export function setupApplicationDefaults() {
+  // テキスト選択を無効化
+  disableTextSelection();
+  
+  // その他の初期化処理があればここに追加
+  
+  console.log('Application defaults initialized');
+}
+
+// Next.jsのクライアントサイドでの自動実行
+if (typeof window !== 'undefined') {
+  // DOMContentLoaded後に実行
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupApplicationDefaults);
+  } else {
+    // すでにDOMが読み込み済みの場合は直ちに実行
+    setupApplicationDefaults();
+  }
+}
 
 export default setupDefaultSettings;

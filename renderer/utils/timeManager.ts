@@ -226,3 +226,40 @@ export function isAfter2230(date: Date): boolean {
   const minutes = date.getMinutes();
   return hours > 22 || (hours === 22 && minutes >= 30);
 }
+
+/**
+ * テキスト選択を無効化するグローバル関数
+ */
+export function disableTextSelection(): void {
+  if (typeof window !== 'undefined') {
+    // CSSルールを動的に追加
+    const style = document.createElement('style');
+    style.innerHTML = `
+      * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      input, textarea, [contenteditable="true"] {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // マウスイベントでのテキスト選択を防止
+    document.addEventListener('selectstart', function(e) {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || 
+                      target.tagName === 'TEXTAREA' ||
+                      target.getAttribute('contenteditable') === 'true';
+      
+      if (!isInput) {
+        e.preventDefault();
+      }
+    });
+  }
+}
