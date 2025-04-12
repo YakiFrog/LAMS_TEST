@@ -20,6 +20,8 @@ const rankColors = [
   { bg: "#FFD700", text: "#131113", border: "#FFB700", shadowColor: "rgba(255, 215, 0, 0.6)" }, // 1位
   { bg: "#C0C0C0", text: "#131113", border: "#A0A0A0", shadowColor: "rgba(192, 192, 192, 0.6)" }, // 2位
   { bg: "#CD7F32", text: "#131113", border: "#B06000", shadowColor: "rgba(205, 127, 50, 0.6)" }, // 3位
+  { bg: "#E2E8F0", text: "#131113", border: "#CBD5E0", shadowColor: "rgba(160, 174, 192, 0.4)" }, // 4位
+  { bg: "#F7FAFC", text: "#131113", border: "#E2E8F0", shadowColor: "rgba(160, 174, 192, 0.3)" }, // 5位
 ];
 
 // トロフィーアイコンカラー
@@ -40,7 +42,7 @@ interface AttendanceRankingProps {
   maxRanks?: number;
 }
 
-const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 3 }) => {
+const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) => {
   const [daysRanking, setDaysRanking] = useState<RankingData[]>([]);
   const [timeRanking, setTimeRanking] = useState<RankingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);

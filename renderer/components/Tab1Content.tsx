@@ -956,7 +956,7 @@ const Tab1Content: React.FC = () => {
               ランキング
             </Heading>
             <Box mt={8}>
-              <AttendanceRanking maxRanks={3} />
+              <AttendanceRanking maxRanks={4} />
             </Box>
           </Box>
         </GridItem>
