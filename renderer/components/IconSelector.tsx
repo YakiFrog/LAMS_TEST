@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { Box, SimpleGrid, Button, Text, useColorModeValue, Tabs, TabList, Tab, TabPanels, TabPanel, HStack, Flex } from '@chakra-ui/react';
+import React, { useState, useMemo } from 'react';
+import { Box, SimpleGrid, Button, Text, useColorModeValue, Tabs, TabList, Tab, TabPanels, TabPanel, HStack, Flex, IconButton, Center } from '@chakra-ui/react';
+import { ChevronUpIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import { FaUserGraduate, FaCode, FaLaptopCode, FaBook, FaChalkboardTeacher, FaCoffee, 
   FaBrain, FaLightbulb, FaFlask, FaMicroscope, FaRobot, FaCalculator, FaChartLine,
   FaPuzzlePiece, FaGamepad, FaHeadphones, FaMoon, FaStar, FaRocket, 
-  FaMicrochip, FaVrCardboard, FaCogs, FaPlane, FaSatellite } from 'react-icons/fa';
+  FaMicrochip, FaVrCardboard, FaCogs, FaPlane, FaSatellite,
+  FaMicrophone, FaWater, FaMagnet, FaCarCrash, FaUser, FaSkull, FaGhost, 
+  FaVolumeUp, FaWaveSquare, FaWind, FaStopCircle, FaUserAlt, FaBone,
+  FaCar, FaTaxi, FaTruck, FaBus, FaMicrochip as FaChip, FaMemory, FaBrain as FaAI, FaNetworkWired,
+  FaPlaystation, FaXbox, FaDesktop, FaChess, FaDice, FaChessBoard } from 'react-icons/fa';
+import { SiAtari, SiSega, SiNintendoswitch as FaNintendoSwitch,
+  SiApple, SiGoogle, SiAmazon, SiFacebook, SiX,
+  SiNetflix, SiTesla, SiSamsung, SiSony, SiAdobe, SiIntel } from 'react-icons/si';
+import { GiJoystick as FaJoystick } from 'react-icons/gi';
 
-// 利用可能なアイコンの定義
 export const availableIcons = [
   { id: 'userGraduate', icon: FaUserGraduate, label: '卒業生' },
   { id: 'code', icon: FaCode, label: 'コード' },
@@ -13,7 +21,6 @@ export const availableIcons = [
   { id: 'book', icon: FaBook, label: '本' },
   { id: 'chalkboardTeacher', icon: FaChalkboardTeacher, label: '教師' },
   { id: 'coffee', icon: FaCoffee, label: 'コーヒー' },
-  { id: 'brain', icon: FaBrain, label: '脳' },
   { id: 'lightbulb', icon: FaLightbulb, label: '電球' },
   { id: 'flask', icon: FaFlask, label: 'フラスコ' },
   { id: 'microscope', icon: FaMicroscope, label: '顕微鏡' },
@@ -31,9 +38,44 @@ export const availableIcons = [
   { id: 'cogs', icon: FaCogs, label: '歯車' },
   { id: 'drone', icon: FaPlane, label: 'ドローン' },
   { id: 'satellite', icon: FaSatellite, label: '衛星' },
+  { id: 'microphone', icon: FaMicrophone, label: '音声' },
+  { id: 'volumeUp', icon: FaVolumeUp, label: '音量' },
+  { id: 'water', icon: FaWater, label: '水面' },
+  { id: 'wave', icon: FaWaveSquare, label: '波形' },
+  { id: 'magnet', icon: FaMagnet, label: '磁石' },
+  { id: 'brake', icon: FaCarCrash, label: 'ブレーキ' },
+  { id: 'stop', icon: FaStopCircle, label: '停止' },
+  { id: 'userAlt', icon: FaUserAlt, label: '人物' },
+  { id: 'skull', icon: FaSkull, label: 'ガイコツ' },
+  { id: 'bone', icon: FaBone, label: '骨' },
+  { id: 'ghost', icon: FaGhost, label: 'おばけ' },
+  { id: 'wind', icon: FaWind, label: '風' },
+  { id: 'car', icon: FaCar, label: '車' },
+  { id: 'taxi', icon: FaTaxi, label: 'タクシー' },
+  { id: 'truck', icon: FaTruck, label: 'トラック' },
+  { id: 'bus', icon: FaBus, label: 'バス' },
+  { id: 'ai', icon: FaAI, label: 'AI' },
+  { id: 'chip', icon: FaChip, label: 'チップ' },
+  { id: 'memory', icon: FaMemory, label: 'メモリ' },
+  { id: 'network', icon: FaNetworkWired, label: 'ネットワーク' },
+  { id: 'playstation', icon: FaPlaystation, label: 'PS' },
+  { id: 'xbox', icon: FaXbox, label: 'Xbox' },
+  { id: 'nintendoSwitch', icon: FaNintendoSwitch, label: 'Switch' },
+  { id: 'atari', icon: SiAtari, label: 'Atari' },
+  { id: 'sega', icon: SiSega, label: 'SEGA' },
+  { id: 'joystick', icon: FaJoystick, label: 'ジョイスティック' },
+  { id: 'chess', icon: FaChess, label: 'チェス' },
+  { id: 'dice', icon: FaDice, label: 'サイコロ' },
+  { id: 'apple', icon: SiApple, label: 'Apple' },
+  { id: 'google', icon: SiGoogle, label: 'Google' },
+  { id: 'amazon', icon: SiAmazon, label: 'Amazon' },
+  { id: 'twitter', icon: SiX, label: 'Twitter' },
+  { id: 'tesla', icon: SiTesla, label: 'Tesla' },
+  { id: 'sony', icon: SiSony, label: 'Sony' },
+  { id: 'adobe', icon: SiAdobe, label: 'Adobe' },
+  { id: 'intel', icon: SiIntel, label: 'Intel' },
 ];
 
-// 利用可能なアイコン色の定義
 export const availableIconColors = [
   { id: 'default', value: '#131113', label: 'デフォルト' },
   { id: 'blue', value: '#3182CE', label: '青' },
@@ -46,7 +88,6 @@ export const availableIconColors = [
   { id: 'yellow', value: '#D69E2E', label: '黄色' },
 ];
 
-// 利用可能な背景色の定義
 export const availableBackgroundColors = [
   { id: 'white', value: '#FFFFFF', label: '白' },
   { id: 'gray', value: '#E2E8F0', label: 'グレー' },
@@ -59,14 +100,12 @@ export const availableBackgroundColors = [
   { id: 'lightpink', value: '#FED7E2', label: '薄桃' },
 ];
 
-// アイコンIDからアイコンコンポーネントを取得するヘルパー関数
 export const getIconById = (iconId: string | null | undefined) => {
   if (!iconId) return null;
   const iconObj = availableIcons.find(i => i.id === iconId);
   return iconObj ? iconObj.icon : null;
 };
 
-// 設定の型定義を更新
 export interface IconSettings {
   iconId: string;
   iconColor: string;
@@ -93,6 +132,30 @@ const IconSelector: React.FC<IconSelectorProps> = ({
   const hoverBg = useColorModeValue('blue.100', 'blue.700');
   const selectedBg = useColorModeValue('blue.200', 'blue.600');
   const [tabIndex, setTabIndex] = useState(0);
+  
+  const [currentPage, setCurrentPage] = useState(0);
+  const iconsPerPage = 20;
+  
+  const paginatedIcons = useMemo(() => {
+    const totalPages = Math.ceil(availableIcons.length / iconsPerPage);
+    const pages = [];
+    
+    for (let i = 0; i < totalPages; i++) {
+      const startIndex = i * iconsPerPage;
+      const endIndex = startIndex + iconsPerPage;
+      pages.push(availableIcons.slice(startIndex, endIndex));
+    }
+    
+    return pages;
+  }, []);
+  
+  const goToPrevPage = () => {
+    setCurrentPage(prev => (prev > 0 ? prev - 1 : 0));
+  };
+  
+  const goToNextPage = () => {
+    setCurrentPage(prev => (prev < paginatedIcons.length - 1 ? prev + 1 : prev));
+  };
 
   return (
     <Box>
@@ -104,11 +167,33 @@ const IconSelector: React.FC<IconSelectorProps> = ({
         </TabList>
         
         <TabPanels>
-          {/* アイコン選択パネル */}
           <TabPanel>
             <Text mb={2} fontWeight="bold">アイコンを選択</Text>
-            <SimpleGrid columns={5} spacing={2}>
-              {availableIcons.map(({ id, icon: Icon, label }) => (
+            
+            <Flex justify="center" mb={2}>
+              <IconButton
+                aria-label="前のページ"
+                icon={<ChevronUpIcon boxSize={6} />}
+                onClick={goToPrevPage}
+                isDisabled={currentPage === 0}
+                colorScheme="blue"
+                variant="ghost"
+                size="sm"
+              />
+              <Text mx={3} fontWeight="medium">{currentPage + 1} / {paginatedIcons.length}</Text>
+              <IconButton
+                aria-label="次のページ"
+                icon={<ChevronDownIcon boxSize={6} />}
+                onClick={goToNextPage}
+                isDisabled={currentPage === paginatedIcons.length - 1}
+                colorScheme="blue"
+                variant="ghost"
+                size="sm"
+              />
+            </Flex>
+            
+            <SimpleGrid columns={5} spacing={2} height="300px">
+              {paginatedIcons[currentPage]?.map(({ id, icon: Icon, label }) => (
                 <Button
                   key={id}
                   variant="outline"
@@ -130,9 +215,30 @@ const IconSelector: React.FC<IconSelectorProps> = ({
                 </Button>
               ))}
             </SimpleGrid>
+            
+            <Flex justify="center" mt={3}>
+              <Button 
+                leftIcon={<ChevronUpIcon />}
+                onClick={goToPrevPage}
+                isDisabled={currentPage === 0}
+                colorScheme="blue"
+                size="sm"
+                mr={2}
+              >
+                前へ
+              </Button>
+              <Button 
+                rightIcon={<ChevronDownIcon />} 
+                onClick={goToNextPage}
+                isDisabled={currentPage === paginatedIcons.length - 1}
+                colorScheme="blue"
+                size="sm"
+              >
+                次へ
+              </Button>
+            </Flex>
           </TabPanel>
           
-          {/* アイコン色選択パネル */}
           <TabPanel>
             <Text mb={2} fontWeight="bold">アイコンの色を選択</Text>
             <SimpleGrid columns={5} spacing={2}>
@@ -167,7 +273,6 @@ const IconSelector: React.FC<IconSelectorProps> = ({
             </SimpleGrid>
           </TabPanel>
           
-          {/* 背景色選択パネル */}
           <TabPanel>
             <Text mb={2} fontWeight="bold">背景の色を選択</Text>
             <SimpleGrid columns={5} spacing={2}>
@@ -204,7 +309,6 @@ const IconSelector: React.FC<IconSelectorProps> = ({
         </TabPanels>
       </Tabs>
       
-      {/* 選択したアイコンのプレビュー */}
       {selectedIcon && (
         <Box mt={2} textAlign="center">
           <Text mb={2}>プレビュー</Text>
