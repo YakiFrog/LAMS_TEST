@@ -135,6 +135,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
     <Box
       p={2}
       py={1} // 上下のパディングをさらに減らす
+      pt={1.5} // 左側のパディングをさらに減らす
       borderRadius="full"
       bg="#131113"
       color="white"
@@ -197,7 +198,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
                 <Badge
                   bg={gradeBadgeColors[currentEvent.target] || 'gray.500'}
                   color="white"
-                  fontSize="xl" /* サイズを小さく */
+                  fontSize="lg"
                   fontWeight="bold"
                   px={3}
                   mr={3} /* マージンを縮小 */
@@ -205,7 +206,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
                 >
                   {currentEvent.target}
                 </Badge>
-                <Text fontSize="2xl" fontWeight="bold" noOfLines={1} maxW="150px" mr={10}> {/* 幅を制限 */}
+                <Text fontSize="xl" fontWeight="bold" noOfLines={1} maxW="150px" mr={10}> {/* 幅を制限 */}
                   {currentEvent.name}
                   {events === sampleEvents && <span style={{ fontSize: '0.7em', color: '#FF6B6B', marginLeft: '0.2em' }}>(サンプル)</span>}
                 </Text>
@@ -214,16 +215,16 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
           </Flex>
 
           {/* 日数 - さらにコンパクトに */}
-          <Box overflow="hidden" position="relative" maxWidth="260px" flexShrink={0} ml={1}> {/* 幅を広げる */}
+          <Box overflow="hidden" position="relative" maxWidth="260px" flexShrink={0} ml={1} mb={1}> {/* 幅を広げる */}
             <Text 
-              fontSize="2xl"
+              fontSize="lg"
               fontWeight="extrabold"
               animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}
               lineHeight="1"
               textAlign="right"
             >
               残り<span style={{ 
-                fontSize: '1.5em', 
+                fontSize: '2.0em', 
                 color: '#FF0000',
                 fontWeight: 'bold', 
                 marginLeft: '0.1em', 
@@ -232,7 +233,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
               }}>{currentEvent.daysRemaining}</span>
               日
               <span style={{ 
-                fontSize: '0.5em',
+                fontSize: '0.7em',
                 color: '#FFF',
                 fontWeight: 'normal', 
                 marginLeft: '2em',
