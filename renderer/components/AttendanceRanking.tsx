@@ -388,22 +388,28 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         overflow: "hidden"
       }}
     >
-        <Badge
+        <Box
           position="absolute"
           top={-3}
           left={4}
-          fontSize="lg"
-          px={3}
-          py={1}
           borderRadius="full"
-          bg={index < 3 ? `linear-gradient(135deg, #131113 0%, #2D2D2D 100%)` : "#131113"}
-          color={index < 3 ? trophyColors[index] : "white"}
-          fontWeight="bold"
+          bg="#131113"
+          p="2px"
           boxShadow="0 2px 5px rgba(0, 0, 0, 0.3)"
           zIndex={2}
         >
-          {index + 1}位
-        </Badge>
+          <Badge
+            fontSize="lg"
+            px={3}
+            py={1}
+            borderRadius="full"
+            bg="transparent"
+            color={index < 3 ? trophyColors[index] : "white"}
+            fontWeight="bold"
+          >
+            {index + 1}位
+          </Badge>
+        </Box>
 
         <Flex align="center" position="relative" zIndex={1} mt={1} ml={2}>
           <Box mr={3} ml={8}>
@@ -442,10 +448,26 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
     mb: 5,
     pb: 2,
     borderBottom: "6px solid #131113",
-    // background: "linear-gradient(90deg, #F9FAFB 0%, #EDF2F7 100%)",
     padding: "8px 16px",
-    // borderRadius: "lg",
-    // boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+  };
+  
+  // ヘッディングのテキストスタイル
+  const headingTextStyle = {
+    fontWeight: 900,
+    fontFamily: "Impact, 'Arial Black', sans-serif",
+    letterSpacing: "0.05em",
+    textShadow: "0 1px 0 rgba(0,0,0,0.2)"
+  };
+
+  // アイコン用の円形背景スタイル
+  const iconCircleStyle = {
+    bg: "#131113",
+    p: 3.5,
+    borderRadius: "full",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
   };
   
   return (
@@ -455,8 +477,10 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         <Box>
           <Box {...sectionHeaderStyle}>
             <Flex align="center">
-              <FaTrophy color="#FFD700" size="1.8em" />
-              <Heading size="lg" ml={2} color="#131113" fontWeight="bold">出勤日数ランキング</Heading>
+              <Box {...iconCircleStyle}>
+                <FaTrophy color="#FFD700" size="1.5em" />
+              </Box>
+              <Heading size="lg" ml={3} color="#131113" {...headingTextStyle}>出勤日数ランキング</Heading>
             </Flex>
           </Box>
           {daysRanking.length > 0 ? (
@@ -478,8 +502,10 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         <Box>
           <Box {...sectionHeaderStyle}>
             <Flex align="center">
-              <FaClock color="#3182CE" size="1.8em" />
-              <Heading size="lg" ml={2} color="#131113">滞在時間ランキング</Heading>
+              <Box {...iconCircleStyle}>
+                <FaClock color="#3182CE" size="1.5em" />
+              </Box>
+              <Heading size="lg" ml={3} color="#131113" {...headingTextStyle}>滞在時間ランキング</Heading>
             </Flex>
           </Box>
           {timeRanking.length > 0 ? (
