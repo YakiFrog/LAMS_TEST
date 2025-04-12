@@ -411,7 +411,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
           </Badge>
         </Box>
 
-        <Flex align="center" position="relative" zIndex={1} mt={1} ml={2}>
+        <Flex align="center" position="relative" zIndex={1} mt={1} ml={9}>
           <Box mr={3} ml={8}>
             <Badge colorScheme={
               item.grade === '教員' ? 'purple' : 

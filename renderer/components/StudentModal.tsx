@@ -49,6 +49,24 @@ const pulseKeyframes = keyframes`
   }
 `;
 
+// 滞在時間に応じた色の強度レベル - GitHub風の赤色グラデーション
+const COLOR_LEVELS = [
+  'rgb(255, 200, 200)', // レベル0: 出勤あり（滞在時間なし/不明）
+  'rgb(255, 180, 180)', // レベル1: 少し
+  'rgb(255, 150, 150)', // レベル2: やや少なめ
+  'rgb(255, 100, 100)', // レベル3: 中程度
+  'rgb(200, 0, 0)'      // レベル4: 長時間
+];
+
+// 滞在時間のしきい値（秒単位）
+const STAY_TIME_THRESHOLDS = [
+  0,       // レベル0: 出勤あり
+  1800,    // レベル1: 30分
+  3600,    // レベル2: 1時間
+  10800,   // レベル3: 3時間
+  21600    // レベル4: 6時間以上
+];
+
 // WeekdayAttendanceIndicatorコンポーネント - 曜日出勤状況を視覚的に表示
 const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   const [attendanceDays, setAttendanceDays] = useState<number[]>([]);
@@ -59,6 +77,10 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   const [recentWeekdayDates, setRecentWeekdayDates] = useState<Record<number, string>>({});
   // 曜日ごとの滞在時間情報を保持する状態
   const [weekdayStayTimes, setWeekdayStayTimes] = useState<Record<number, string>>({});
+  // 曜日ごとの滞在時間の秒数を保持する状態
+  const [weekdayStaySeconds, setWeekdayStaySeconds] = useState<Record<number, number>>({});
+  // 曜日ごとの色強度レベルを保持する状態
+  const [weekdayColorLevels, setWeekdayColorLevels] = useState<Record<number, number>>({});
   
   const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
   
@@ -69,6 +91,16 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   
+  // 滞在時間に基づいて色の強度レベルを決定する関数
+  const calculateColorLevel = (seconds: number): number => {
+    for (let i = STAY_TIME_THRESHOLDS.length - 1; i >= 0; i--) {
+      if (seconds >= STAY_TIME_THRESHOLDS[i]) {
+        return i;
+      }
+    }
+    return 0;
+  };
+
   useEffect(() => {
     const loadAttendanceData = async () => {
       try {
@@ -82,13 +114,21 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
         const dates = calculateRecentWeekdayDates();
         
         // CSVファイルからの出勤履歴チェック
-        const { attendanceDays: csvAttendanceDays, stayTimes } = await loadAttendanceFromCSV(studentId, dates);
+        const { attendanceDays: csvAttendanceDays, stayTimes, staySeconds } = await loadAttendanceFromCSV(studentId, dates);
         if (csvAttendanceDays.length > 0) {
           // 既存の出勤日と CSV からの出勤日をマージ
           const mergedDays = Array.from(new Set([...detectedAttendanceDays, ...csvAttendanceDays]));
           detectedAttendanceDays = mergedDays;
           // 滞在時間情報を保存
           setWeekdayStayTimes(stayTimes);
+          setWeekdayStaySeconds(staySeconds);
+          
+          // 各曜日の色強度レベルを計算
+          const colorLevels: Record<number, number> = {};
+          Object.entries(staySeconds).forEach(([dayIndex, seconds]) => {
+            colorLevels[parseInt(dayIndex)] = calculateColorLevel(seconds);
+          });
+          setWeekdayColorLevels(colorLevels);
         }
         
         setAttendanceDays(detectedAttendanceDays);
@@ -104,17 +144,21 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
     const loadAttendanceFromCSV = async (
       studentId: string,
       weekdayDates: Record<number, string>
-    ): Promise<{ attendanceDays: number[], stayTimes: Record<number, string> }> => {
+    ): Promise<{ 
+      attendanceDays: number[], 
+      stayTimes: Record<number, string>,
+      staySeconds: Record<number, number>
+    }> => {
       // Electron API が利用可能かチェック
       if (typeof window === 'undefined' || !window.electron) {
         console.log('Electron API が利用できません。CSV ファイルの読み込みをスキップします。');
-        return { attendanceDays: [], stayTimes: {} };
+        return { attendanceDays: [], stayTimes: {}, staySeconds: {} };
       }
 
       const exportPath = localStorage.getItem('exportPath');
       if (!exportPath) {
         console.log('エクスポートパスが設定されていません。CSV ファイルの読み込みをスキップします。');
-        return { attendanceDays: [], stayTimes: {} };
+        return { attendanceDays: [], stayTimes: {}, staySeconds: {} };
       }
 
       try {
@@ -140,6 +184,7 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
         // 各月の CSV ファイルを読み込み、学生の出勤データを抽出
         const attendanceDays = new Set<number>();
         const stayTimes: Record<number, string> = {};
+        const staySeconds: Record<number, number> = {};
         
         for (const monthKey of Array.from(neededMonths)) {
           const fileName = `attendance_${monthKey}.csv`;
@@ -184,12 +229,20 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                     
                     // 滞在時間情報があれば保存
                     const stayTimeSeconds = parseInt(record['滞在時間（秒）'] || '0');
+                    
+                    // 同じ曜日の既存の滞在時間がある場合は加算、なければ新規設定
+                    if (staySeconds[weekday]) {
+                      staySeconds[weekday] += stayTimeSeconds;
+                    } else {
+                      staySeconds[weekday] = stayTimeSeconds;
+                    }
+                    
+                    // 表示用の滞在時間文字列を更新
                     if (stayTimeSeconds > 0) {
-                      const hours = Math.floor(stayTimeSeconds / 3600);
-                      const minutes = Math.floor((stayTimeSeconds % 3600) / 60);
+                      const hours = Math.floor(staySeconds[weekday] / 3600);
+                      const minutes = Math.floor((staySeconds[weekday] % 3600) / 60);
                       stayTimes[weekday] = `${hours}時間${minutes}分`;
                     } else if (record['滞在時間']) {
-                      // 直接滞在時間フィールドがある場合
                       stayTimes[weekday] = record['滞在時間'];
                     }
                   } catch (e) {
@@ -203,10 +256,10 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
           }
         }
         
-        return { attendanceDays: Array.from(attendanceDays), stayTimes };
+        return { attendanceDays: Array.from(attendanceDays), stayTimes, staySeconds };
       } catch (error) {
         console.error('CSV ファイル読み込みエラー:', error);
-        return { attendanceDays: [], stayTimes: {} };
+        return { attendanceDays: [], stayTimes: {}, staySeconds: {} };
       }
     };
     
@@ -268,9 +321,6 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
   
   return (
     <VStack spacing={2} align="center" w="100%">
-      {/* <Text fontSize="mg" fontWeight="bold" mb={2}>
-        直近の出勤曜日
-      </Text> */}
       <HStack spacing={3} justify="center">
         {weekdays.map((day, index) => {
           const isAttendance = attendanceDays.includes(index);
@@ -281,9 +331,16 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
           
           // 表示するコンテンツを作成
           let popoverContent = '';
+          let bgColor = 'gray.300'; // デフォルト色（出勤なし）
+          
           if (isAttendance) {
+            // 滞在時間情報がある場合
             const stayTime = weekdayStayTimes[index] || '滞在時間不明';
             popoverContent = `${recentDate}：${stayTime}`;
+            
+            // 色強度レベルに基づいて背景色を設定
+            const colorLevel = weekdayColorLevels[index] || 0;
+            bgColor = COLOR_LEVELS[colorLevel];
           } else {
             popoverContent = `${recentDate}：未出勤`;
           }
@@ -304,24 +361,24 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                   position="relative"
                   display="inline-block"
                 >
-                      {isToday && (
-                      <Box
-                        position="absolute"
-                        top="-5px"
-                        left="-6px"
-                        right="-6px"
-                        bottom="-5px"
-                        borderRadius="full"
-                        borderWidth="4px"
-                        borderColor="green.400"
-                        animation={pulseAnimation}
-                        zIndex={0}
-                      />
-                      )}
-                    <Circle
+                  {isToday && (
+                    <Box
+                      position="absolute"
+                      top="-5px"
+                      left="-6px"
+                      right="-6px"
+                      bottom="-5px"
+                      borderRadius="full"
+                      borderWidth="4px"
+                      borderColor="green.400"
+                      animation={pulseAnimation}
+                      zIndex={0}
+                    />
+                  )}
+                  <Circle
                     size="40px"
-                    bg={isAttendance ? "red.500" : "gray.300"}
-                    color="white"
+                    bg={isAttendance ? bgColor : "gray.300"}
+                    color={isAttendance && weekdayColorLevels[index] >= 3 ? "white" : "black"}
                     fontWeight="bold"
                     cursor="pointer"
                     onClick={() => handleDaySelect(index)}
@@ -330,6 +387,7 @@ const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
                     transition="all 0.3s"
                     position="relative"
                     zIndex={1}
+                    boxShadow={isAttendance ? "0 2px 4px rgba(0,0,0,0.2)" : "none"}
                   >
                     {day}
                   </Circle>

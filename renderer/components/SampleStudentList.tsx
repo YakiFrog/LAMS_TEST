@@ -41,6 +41,7 @@ const BASE_HEIGHT = 60;  // 基本高さ
 const CHAR_WIDTH = 22;   // 1文字あたりの幅（ピクセル）
 const MAX_PANELS_PER_ROW = 5; // 1行あたりの最大パネル数
 const PANEL_GAP = 45; // パネル間の固定間隔（px）を30pxから45pxに増加
+const PANEL_GAP_VERTICAL = 8; // パネル間の垂直方向の間隔（px）
 
 const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAttendanceChange }) => {
   // モーダル表示状態と選択された学生の状態管理
@@ -573,7 +574,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
             <Box 
               key={grade} 
               position="relative" 
-              mb={4} 
+              mb={6} // 学年セクション間の余白を少し増やす
               pb={4}
             >
               {/* 学年の平均出勤日数を表示 */}
@@ -596,7 +597,13 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                 >
                   {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '5px' }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.2em', letterSpacing: '5px' }}>日</span>
                 </Badge>
-              <Wrap justify="flex-start" align="center" overflow="visible" gap={`${PANEL_GAP}px`}>
+              <Wrap 
+                justify="flex-start" 
+                align="center" 
+                overflow="visible" 
+                gap={`${PANEL_GAP}px`} 
+                spacing={`${PANEL_GAP_VERTICAL}px`} // 垂直方向のスペースを追加
+              >
                 {/* その学年の学生だけをフィルタリングして表示 */}
                 {sortStudents().filter(student => student.grade === grade).map(student => {
                   // 出勤日数に基づくスケール係数
@@ -627,6 +634,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                       key={student.id} 
                       maxWidth={maxPanelWidth}
                       margin="0" // マージンを0に設定し、親のgapプロパティに依存
+                      marginBottom={`${PANEL_GAP_VERTICAL}px`} // 垂直方向のスペースを追加
                       // 出勤日数が多いパネルの順序を後ろに（下段に表示されやすく）
                       order={attendanceDays > 0 ? -attendanceDays : 0}
                     >
@@ -648,6 +656,9 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         cursor="pointer"
                         onClick={() => onOpen(student)}
                         position="relative"
+                        paddingBottom={attendanceStates[student.id]?.isAttending || 
+                                      (attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending) 
+                                      ? "10px" : "0px"}
                         borderColor={
                           attendanceStates[student.id]?.isAttending
                             ? "green.400"
