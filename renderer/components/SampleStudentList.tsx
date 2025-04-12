@@ -676,7 +676,21 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   borderBottomLeftRadius="md" 
                   borderBottomRightRadius="xl"
                 >
-                  {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '5px' }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.2em', letterSpacing: '5px' }}>日</span>
+                  {grade === '教員' ? '教員' : grade}の平均出勤日数: 
+                  <span style={{ 
+                    fontSize: '2.0em', 
+                    letterSpacing: '5px',
+                    color: 'white',
+                    textShadow: '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000'
+                  }}>
+                    {averageAttendanceByGrade[grade] || 0}
+                  </span>
+                  <span style={{ 
+                    fontSize: '1.2em', 
+                    letterSpacing: '5px',
+                    color: 'white',
+                    textShadow: '1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 0 1.5px 0 #000, 0 -1.5px 0 #000, 1.5px 0 0 #000, -1.5px 0 0 #000'
+                  }}>日</span>
                 </Badge>
               <Wrap 
                 justify="flex-start" 

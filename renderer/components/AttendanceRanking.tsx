@@ -409,7 +409,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         fontStyle: 'italic',
         color: 'white',
         marginRight: '5px',
-        textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 2.5px 0 #000, 0 -2.5px 0 #000, 2.5px 0 0 #000, -2.5px 0 0 #000',
+        textShadow: '2.3px 2.3px 0 #000, -2.3px -2.3px 0 #000, 2.3px -2.3px 0 #000, -2.3px 2.3px 0 #000, 0 2.3px 0 #000, 0 -2.3px 0 #000, 2.3px 0 0 #000, -2.3px 0 0 #000',
         display: 'inline-block',  // Ensures the text stays inline while having block properties
         lineHeight: '1',  // Keeps the line height tight
         verticalAlign: 'baseline'  // Aligns with surrounding text
@@ -418,7 +418,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
       const unitStyle = {
         color: 'white',
         fontStyle: 'italic',
-        textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 2.5px 0 #000, 0 -2.5px 0 #000, 2.5px 0 0 #000, -2.5px 0 0 #000',
+        textShadow: '2.3px 2.3px 0 #000, -2.3px -2.3px 0 #000, 2.3px -2.3px 0 #000, -2.3px 2.3px 0 #000, 0 2.3px 0 #000, 0 -2.3px 0 #000, 2.3px 0 0 #000, -2.3px 0 0 #000',
         fontSize: '1.1em',
         marginRight: '8px'
       };
@@ -555,7 +555,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         >
           <Badge
             fontSize="lg"
-            px={3}
+            px={4}
             py={1}
             borderRadius="full"
             bg="transparent"
@@ -567,13 +567,20 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         </Box>
 
         <Flex align="center" position="relative" zIndex={1} mt={1} ml={9}>
-          <Box mr={3} ml={8}>
+          <Box mr={4} ml={12}>
             <Badge colorScheme={gradeBadgeColors[item.grade]} fontSize="md" px={2} py={1} borderRadius="md">
               {item.grade}
             </Badge>
           </Box>
           
-          <Text fontWeight="bold" fontSize="xl" textShadow="0px 1px 10px rgba(255, 255, 255, 0.9)" letterSpacing="0.05em">
+          <Text 
+            fontWeight="bold" 
+            fontSize="2xl" 
+            fontStyle="italic"
+            letterSpacing="0.1em"
+            color="white"
+            textShadow="2.0px 2.0px 0 #000, -2.0px -2.0px 0 #000, 2.0px -2.0px 0 #000, -2.0px 2.0px 0 #000, 0 2.0px 0 #000, 0 -2.0px 0 #000, 2.0px 0 0 #000, -2.0px 0 0 #000"
+          >
             {item.name}
           </Text>
           
