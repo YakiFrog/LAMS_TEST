@@ -422,7 +422,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
             </Badge>
           </Box>
           
-          <Text fontWeight="bold" fontSize="xl" textShadow = "2px 0px 10px rgba(255, 255, 255, 0.9)">
+          <Text fontWeight="bold" fontSize="xl" textShadow = "0px 1px 10px rgba(255, 255, 255, 0.9)">
             {item.name}
           </Text>
           
