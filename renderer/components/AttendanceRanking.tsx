@@ -473,7 +473,9 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
       borderWidth="5px" 
       borderColor={colorScheme.border}
       borderStyle="solid"
-      borderRadius="3xl"
+      borderRadius="45px" // カスタムピクセル値で 3xl (24px) と full (9999px) の間の値
+      borderTopRightRadius="xl" // 右上のコーナーを丸くする
+      borderBottomLeftRadius="xl" // 左下のコーナーを丸くする
       bgImage={colorScheme.bg}
       color={colorScheme.text}
       boxShadow={`0 4px 12px ${colorScheme.shadowColor}, 0 0 0 2px ${colorScheme.border}`}
@@ -494,7 +496,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         pointerEvents: "none",
         zIndex: 0,
         overflow: "hidden",
-        borderRadius: "inherit",
+        borderRadius: "inherit", // これを保持して内部要素も同じ曲率を継承
         backgroundSize: "300% 100%",
         animation: "shimmerEffect 6s ease-in-out infinite",
       }}

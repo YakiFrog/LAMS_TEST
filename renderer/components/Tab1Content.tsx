@@ -892,8 +892,8 @@ const Tab1Content: React.FC = () => {
             bg="white"
             position="relative"
           >
-            <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
-              width="50%" maxWidth="250px" px={0} position="absolute" top={0} left="27%" transform="translate(-50%, -50%)"
+            <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full" px={"10%"}
+              width="auto" position="absolute" top={0} left="30%" transform="translate(-50%, -50%)"
               textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
             >
               ランキング
