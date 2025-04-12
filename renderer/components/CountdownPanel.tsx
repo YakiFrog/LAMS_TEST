@@ -198,7 +198,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
                 <Badge
                   bg={gradeBadgeColors[currentEvent.target] || 'gray.500'}
                   color="white"
-                  fontSize="lg"
+                  fontSize="xl"
                   fontWeight="bold"
                   px={3}
                   mr={3} /* マージンを縮小 */

@@ -590,7 +590,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
               {/* 学年の平均出勤日数を表示 */}
                 <Badge
                   position="absolute"
-                  bottom="-20px"
+                  bottom="-15px"
                   right="-15px"
                   bg={theme.colors.neutral[900] || "black"}
                   color="white"
