@@ -17,11 +17,41 @@ interface RankingData {
 
 // 各ランキング項目のカラーマップ
 const rankColors = [
-  { bg: "#FFD700", text: "#131113", border: "#FFB700", shadowColor: "rgba(255, 215, 0, 0.6)" }, // 1位
-  { bg: "#C0C0C0", text: "#131113", border: "#A0A0A0", shadowColor: "rgba(192, 192, 192, 0.6)" }, // 2位
-  { bg: "#CD7F32", text: "#131113", border: "#B06000", shadowColor: "rgba(205, 127, 50, 0.6)" }, // 3位
-  { bg: "#E2E8F0", text: "#131113", border: "#CBD5E0", shadowColor: "rgba(160, 174, 192, 0.4)" }, // 4位
-  { bg: "#F7FAFC", text: "#131113", border: "#E2E8F0", shadowColor: "rgba(160, 174, 192, 0.3)" }, // 5位
+  { 
+    bg: "linear-gradient(135deg, #FFD700 10%, #FFC800 40%, #FFD700 60%, #FFEF9A 100%)", 
+    text: "#131113", 
+    border: "#FFB700", 
+    shadowColor: "rgba(255, 215, 0, 0.6)",
+    highlight: "rgba(255, 255, 200, 0.7)"
+  }, // 1位
+  { 
+    bg: "linear-gradient(135deg, #E8E8E8 10%, #C0C0C0 40%, #D8D8D8 60%, #F5F5F5 100%)", 
+    text: "#131113", 
+    border: "#A0A0A0", 
+    shadowColor: "rgba(192, 192, 192, 0.6)",
+    highlight: "rgba(255, 255, 255, 0.7)"
+  }, // 2位
+  { 
+    bg: "linear-gradient(135deg, #CD7F32 10%, #A05B2C 40%, #CD7F32 60%, #E0A872 100%)", 
+    text: "#131113", 
+    border: "#B06000", 
+    shadowColor: "rgba(205, 127, 50, 0.6)",
+    highlight: "rgba(255, 235, 205, 0.7)"
+  }, // 3位
+  { 
+    bg: "linear-gradient(135deg, #E2E8F0 10%, #CBD5E0 40%, #E2E8F0 60%, #EDF2F7 100%)", 
+    text: "#131113", 
+    border: "#CBD5E0", 
+    shadowColor: "rgba(160, 174, 192, 0.4)",
+    highlight: "rgba(255, 255, 255, 0.5)"
+  }, // 4位
+  { 
+    bg: "linear-gradient(135deg, #F7FAFC 10%, #EDF2F7 40%, #F7FAFC 60%, #FFFFFF 100%)", 
+    text: "#131113", 
+    border: "#E2E8F0", 
+    shadowColor: "rgba(160, 174, 192, 0.3)",
+    highlight: "rgba(255, 255, 255, 0.5)"
+  }, // 5位
 ];
 
 // トロフィーアイコンカラー
@@ -278,45 +308,105 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
   // ランキングアイテムのレンダリング
   const renderRankingItem = (item: RankingData, index: number, type: '出勤日数' | '滞在時間') => {
     const colorScheme = rankColors[index] || 
-      { bg: "#E2E8F0", text: "#131113", border: "#CBD5E0", shadowColor: "rgba(160, 174, 192, 0.4)" };
+      { 
+        bg: "linear-gradient(135deg, #E2E8F0 10%, #CBD5E0 40%, #E2E8F0 60%, #EDF2F7 100%)", 
+        text: "#131113", 
+        border: "#CBD5E0", 
+        shadowColor: "rgba(160, 174, 192, 0.4)",
+        highlight: "rgba(255, 255, 255, 0.5)",
+      };
+    
+    // 滞在時間の表示をフォーマット
+    const formatTimeDisplay = (displayValue: string, value: number) => {
+      if (type === '滞在時間') {
+        // 総秒数から時間、分、秒に変換
+        const hours = Math.floor(value / 3600);
+        const minutes = Math.floor((value % 3600) / 60);
+        const seconds = value % 60;
+        
+        // 時間がある場合
+        if (hours > 0) {
+          return (
+            <>
+              <span style={{ fontSize: '1.5em' }}>{hours}</span>時間
+              <span style={{ fontSize: '1.5em' }}>{minutes}</span>分
+              <span style={{ fontSize: '1.5em' }}>{seconds}</span>秒
+            </>
+          );
+        }
+        // 分だけの場合
+        else if (minutes > 0) {
+          return (
+            <>
+              <span style={{ fontSize: '1.5em' }}>{minutes}</span>分
+              <span style={{ fontSize: '1.5em' }}>{seconds}</span>秒
+            </>
+          );
+        }
+        // 秒だけの場合
+        else {
+          return <><span style={{ fontSize: '1.5em' }}>{seconds}</span>秒</>;
+        }
+      }
+      
+      // 出勤日数の場合
+      return (
+        <>
+          <span style={{ fontSize: '1.5em' }}>{item.value}</span>日
+        </>
+      );
+    };
     
     return (
-      <Box 
-        key={item.studentId} 
-        mb={4}
-        p={2} 
-        borderWidth="5px" 
-        borderColor={colorScheme.border}
-        borderRadius="3xl"
-        bg={colorScheme.bg}
-        color={colorScheme.text}
-        boxShadow={`0 3px 10px ${colorScheme.shadowColor}`}
-        position="relative"
-        userSelect="none"
-        _hover={{
-          transform: "translateY(-3px)",
-          transition: "transform 0.2s"
-        }}
-        transition="all 0.3s"
-      >
-        <Flex align="center">
-          <Badge
-            position="absolute"
-            top={0}
-            left={2}
-            transform="translate(0%, -50%)"
-            fontSize="lg"
-            px={3}
-            py={1}
-            borderRadius="full"
-            bg="#131113"
-            color="white"
-            fontWeight="bold"
-          >
-            {index + 1}位
-          </Badge>
+    <Box 
+      key={item.studentId} 
+      mb={4}
+      p={2} 
+      borderWidth="5px" 
+      borderColor={colorScheme.border}
+      borderStyle="solid"
+      borderRadius="3xl"
+      bgImage={colorScheme.bg}
+      color={colorScheme.text}
+      boxShadow={`0 4px 12px ${colorScheme.shadowColor}, 0 0 0 2px ${colorScheme.border}`}
+      position="relative"
+      userSelect="none"
+      transition="all 0.3s"
+      overflow="visible"
+      _before={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        background: `linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 45%, ${colorScheme.highlight} 60%, transparent 10%), 
+            linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 70%, ${colorScheme.highlight} 73%, transparent 70%)`,
+        opacity: 0.3,
+        pointerEvents: "none",
+        zIndex: 0,
+        overflow: "hidden"
+      }}
+    >
+        <Badge
+          position="absolute"
+          top={-3}
+          left={4}
+          fontSize="lg"
+          px={3}
+          py={1}
+          borderRadius="full"
+          bg={index < 3 ? `linear-gradient(135deg, #131113 0%, #2D2D2D 100%)` : "#131113"}
+          color={index < 3 ? trophyColors[index] : "white"}
+          fontWeight="bold"
+          boxShadow="0 2px 5px rgba(0, 0, 0, 0.3)"
+          zIndex={2}
+        >
+          {index + 1}位
+        </Badge>
 
-          <Box ml={10} mr={3}>
+        <Flex align="center" position="relative" zIndex={1} mt={1} ml={2}>
+          <Box mr={3} ml={8}>
             <Badge colorScheme={
               item.grade === '教員' ? 'purple' : 
               item.grade === 'M2' ? 'blue' :
@@ -333,14 +423,13 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
           <Spacer />
           
           <Text
-            fontSize="2xl"
+            fontSize="xl"
             fontWeight="bold"
             letterSpacing="wider"
+            textShadow="0 1px 2px rgba(0,0,0,0.1)"
+            mr={2}
           >
-            {type === '出勤日数' ? 
-              <span>{item.displayValue}</span> : 
-              <span>{item.displayValue}</span>
-            }
+            {formatTimeDisplay(item.displayValue, item.value)}
           </Text>
         </Flex>
       </Box>
@@ -350,14 +439,18 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
   // セクションヘッダーのスタイル
   const sectionHeaderStyle = {
     position: "relative" as const,
-    mb: 6,
+    mb: 5,
     pb: 2,
-    borderBottom: "4px solid #131113",
+    borderBottom: "6px solid #131113",
+    // background: "linear-gradient(90deg, #F9FAFB 0%, #EDF2F7 100%)",
+    padding: "8px 16px",
+    // borderRadius: "lg",
+    // boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
   };
   
   return (
-    <Box width="100%" mt={10}>
-      <VStack spacing={8} align="stretch">
+    <Box width="100%" mt={0}>
+      <VStack spacing={2} align="stretch">
         {/* 出勤日数ランキング */}
         <Box>
           <Box {...sectionHeaderStyle}>
