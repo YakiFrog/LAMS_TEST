@@ -5,15 +5,15 @@ import { loadCountdownEventsFromCSV, CountdownEvent } from '../utils/countdownMa
 import { getCurrentTime, isTimeOverrideEnabled } from '../utils/timeManager';
 import { TimeIcon } from '@chakra-ui/icons';
 
-// アニメーションの定義
+// アニメーションの定義を右から左の動きに変更
 const fadeOut = keyframes`
-  0% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-20px); }
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-30px); }
 `;
 
 const fadeIn = keyframes`
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateX(30px); }
+  100% { opacity: 1; transform: translateX(0); }
 `;
 
 interface CountdownPanelProps {
