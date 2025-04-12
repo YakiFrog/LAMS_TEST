@@ -1,6 +1,6 @@
 // このコンポーネントは学生リストの表示と出退勤状況を管理します
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Wrap, WrapItem, Text, Badge, useToast, Flex } from '@chakra-ui/react';
+import { Box, Wrap, WrapItem, Text, Badge, useToast, Flex, useTheme } from '@chakra-ui/react';
 import StudentModal from './StudentModal';
 import { exportAttendanceToCSV } from '../utils/exportAttendance';
 import { getCurrentTime, resetTime, formatStayTime, formatStayTimeCompact } from '../utils/timeManager';
@@ -44,6 +44,16 @@ const PANEL_GAP = 45; // パネル間の固定間隔（px）を30pxから45pxに
 const PANEL_GAP_VERTICAL = 8; // パネル間の垂直方向の間隔（px）
 
 const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAttendanceChange }) => {
+  const theme = useTheme();
+
+  // 学年バッジカラー
+  const gradeBadgeColors = theme.customTheme?.gradeBadgeColors || {
+    '教員': 'purple',
+    'M2': 'blue',
+    'M1': 'green',
+    'B4': 'orange'
+  };
+
   // モーダル表示状態と選択された学生の状態管理
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -582,7 +592,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   position="absolute"
                   bottom="-13px"
                   right="-17px"
-                  bg="black"
+                  bg={theme.colors.neutral[900] || "black"}
                   color="white"
                   fontSize="xl" // increased from sm
                   px={5}
@@ -661,20 +671,20 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                                       ? "10px" : "0px"}
                         borderColor={
                           attendanceStates[student.id]?.isAttending
-                            ? "green.400"
+                            ? theme.colors.success[500] || "green.400"
                             : attendanceStates[student.id]?.leavingTime
-                            ? "red.400"
-                            : isFrequent ? "purple.300" : "gray.200" // 頻繁な出勤者は紫色の枠線
+                            ? theme.colors.secondary[500] || "red.400"
+                            : isFrequent ? theme.colors.accent[300] || "purple.300" : "gray.200"
                         }
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                         boxShadow={
                           attendanceStates[student.id]?.isAttending
-                            ? "0 2px 4px rgb(0, 255, 0)"
+                            ? `0 2px 4px ${theme.colors.success[300]}`
                             : attendanceStates[student.id]?.leavingTime
-                            ? "0 2px 4px rgb(255, 0, 0)"
-                            : isFrequent ? "0 3px 5px rgba(128, 90, 213, 0.3)" : "0 2px 2px rgba(0, 0, 0, 0.3)"
+                            ? `0 2px 4px ${theme.colors.secondary[300]}`
+                            : isFrequent ? `0 3px 5px rgba(128, 90, 213, 0.3)` : "0 2px 2px rgba(0, 0, 0, 0.3)"
                         }
                         transition="all 0.3s ease"
                         _hover={{
@@ -691,7 +701,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             position="absolute"
                             top="-11px"
                             left="10px"
-                            colorScheme={isFrequent ? "purple" : "blue"} // 頻繁な出勤者は紫色のバッジ
+                            colorScheme={isFrequent ? gradeBadgeColors[student.grade] : "blue"} // 学年に合わせた色
                             fontSize={`${0.7 * scale}rem`}
                             borderRadius="full"
                             px={2.5}

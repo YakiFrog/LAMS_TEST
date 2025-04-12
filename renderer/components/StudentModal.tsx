@@ -25,7 +25,8 @@ import {
   PopoverArrow,
   PopoverCloseButton,
   useDisclosure,
-  Flex
+  Flex,
+  useTheme
 } from '@chakra-ui/react';
 import { keyframes, Global } from '@emotion/react';
 import Papa from 'papaparse';
@@ -49,26 +50,27 @@ const pulseKeyframes = keyframes`
   }
 `;
 
-// 滞在時間に応じた色の強度レベル - GitHub風の赤色グラデーション
-const COLOR_LEVELS = [
-  'rgb(255, 200, 200)', // レベル0: 出勤あり（滞在時間なし/不明）
-  'rgb(255, 180, 180)', // レベル1: 少し
-  'rgb(255, 150, 150)', // レベル2: やや少なめ
-  'rgb(255, 100, 100)', // レベル3: 中程度
-  'rgb(200, 0, 0)'      // レベル4: 長時間
-];
-
-// 滞在時間のしきい値（秒単位）
-const STAY_TIME_THRESHOLDS = [
-  0,       // レベル0: 出勤あり
-  1800,    // レベル1: 30分
-  3600,    // レベル2: 1時間
-  10800,   // レベル3: 3時間
-  21600    // レベル4: 6時間以上
-];
-
 // WeekdayAttendanceIndicatorコンポーネント - 曜日出勤状況を視覚的に表示
 const WeekdayAttendanceIndicator = ({ studentId }: { studentId: string }) => {
+  const theme = useTheme();
+  // テーマから色を取得 (fallbackとして元の色配列を使用)
+  const COLOR_LEVELS = theme.customTheme?.weekdayColors?.attendanceIndicator || [
+    'rgb(255, 200, 200)', // レベル0: 出勤あり（滞在時間なし/不明）
+    'rgb(255, 180, 180)', // レベル1: 少し
+    'rgb(255, 150, 150)', // レベル2: やや少なめ
+    'rgb(255, 100, 100)', // レベル3: 中程度
+    'rgb(200, 0, 0)'      // レベル4: 長時間
+  ];
+
+  // 滞在時間のしきい値（秒単位）
+  const STAY_TIME_THRESHOLDS = [
+    0,       // レベル0: 出勤あり
+    1800,    // レベル1: 30分
+    3600,    // レベル2: 1時間
+    10800,   // レベル3: 3時間
+    21600    // レベル4: 6時間以上
+  ];
+
   const [attendanceDays, setAttendanceDays] = useState<number[]>([]);
   const [currentDayIndex, setCurrentDayIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState<boolean>(true);

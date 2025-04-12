@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, VStack, HStack, Text, Heading, Badge, Flex, Spacer, Divider } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Heading, Badge, Flex, Spacer, Divider, useTheme } from '@chakra-ui/react';
 import { getStudentNameById, getStudentGradeById } from '../utils/studentsManager';
 import { formatStayTime } from '../utils/timeManager';
 import Papa from 'papaparse';
@@ -14,48 +14,6 @@ interface RankingData {
   displayValue: string;
   orderIndex?: number; // 登録順を保持するためのプロパティを追加
 }
-
-// 各ランキング項目のカラーマップ
-const rankColors = [
-  { 
-    bg: "linear-gradient(135deg, #FFD700 10%, #FFC800 40%, #FFD700 60%, #FFEF9A 100%)", 
-    text: "#131113", 
-    border: "#FFB700", 
-    shadowColor: "rgba(255, 215, 0, 0.6)",
-    highlight: "rgba(255, 255, 200, 0.7)"
-  }, // 1位
-  { 
-    bg: "linear-gradient(135deg, #E8E8E8 10%, #C0C0C0 40%, #D8D8D8 60%, #F5F5F5 100%)", 
-    text: "#131113", 
-    border: "#A0A0A0", 
-    shadowColor: "rgba(192, 192, 192, 0.6)",
-    highlight: "rgba(255, 255, 255, 0.7)"
-  }, // 2位
-  { 
-    bg: "linear-gradient(135deg, #CD7F32 10%, #A05B2C 40%, #CD7F32 60%, #E0A872 100%)", 
-    text: "#131113", 
-    border: "#B06000", 
-    shadowColor: "rgba(205, 127, 50, 0.6)",
-    highlight: "rgba(255, 235, 205, 0.7)"
-  }, // 3位
-  { 
-    bg: "linear-gradient(135deg, #E2E8F0 10%, #CBD5E0 40%, #E2E8F0 60%, #EDF2F7 100%)", 
-    text: "#131113", 
-    border: "#CBD5E0", 
-    shadowColor: "rgba(160, 174, 192, 0.4)",
-    highlight: "rgba(255, 255, 255, 0.5)"
-  }, // 4位
-  { 
-    bg: "linear-gradient(135deg, #F7FAFC 10%, #EDF2F7 40%, #F7FAFC 60%, #FFFFFF 100%)", 
-    text: "#131113", 
-    border: "#E2E8F0", 
-    shadowColor: "rgba(160, 174, 192, 0.3)",
-    highlight: "rgba(255, 255, 255, 0.5)"
-  }, // 5位
-];
-
-// トロフィーアイコンカラー
-const trophyColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
 // 学年の優先度を数値化する関数を追加
 const getGradePriority = (grade: string): number => {
@@ -73,6 +31,58 @@ interface AttendanceRankingProps {
 }
 
 const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) => {
+  const theme = useTheme();
+
+  // テーマから色を取得 (fallbackとして元の色配列を使用)
+  const rankColors = theme.customTheme?.rankingColors || [
+    { 
+      bg: "linear-gradient(135deg, #FFD700 10%, #FFC800 40%, #FFD700 60%, #FFEF9A 100%)", 
+      text: "#131113", 
+      border: "#FFB700", 
+      shadowColor: "rgba(255, 215, 0, 0.6)",
+      highlight: "rgba(255, 255, 200, 0.7)"
+    }, // 1位
+    { 
+      bg: "linear-gradient(135deg, #E8E8E8 10%, #C0C0C0 40%, #D8D8D8 60%, #F5F5F5 100%)", 
+      text: "#131113", 
+      border: "#A0A0A0", 
+      shadowColor: "rgba(192, 192, 192, 0.6)",
+      highlight: "rgba(255, 255, 255, 0.7)"
+    }, // 2位
+    { 
+      bg: "linear-gradient(135deg, #CD7F32 10%, #A05B2C 40%, #CD7F32 60%, #E0A872 100%)", 
+      text: "#131113", 
+      border: "#B06000", 
+      shadowColor: "rgba(205, 127, 50, 0.6)",
+      highlight: "rgba(255, 235, 205, 0.7)"
+    }, // 3位
+    { 
+      bg: "linear-gradient(135deg, #E2E8F0 10%, #CBD5E0 40%, #E2E8F0 60%, #EDF2F7 100%)", 
+      text: "#131113", 
+      border: "#CBD5E0", 
+      shadowColor: "rgba(160, 174, 192, 0.4)",
+      highlight: "rgba(255, 255, 255, 0.5)"
+    }, // 4位
+    { 
+      bg: "linear-gradient(135deg, #F7FAFC 10%, #EDF2F7 40%, #F7FAFC 60%, #FFFFFF 100%)", 
+      text: "#131113", 
+      border: "#E2E8F0", 
+      shadowColor: "rgba(160, 174, 192, 0.3)",
+      highlight: "rgba(255, 255, 255, 0.5)"
+    }, // 5位
+  ];
+
+  // トロフィーアイコンカラー
+  const trophyColors = theme.customTheme?.trophyColors || ["#FFD700", "#C0C0C0", "#CD7F32"];
+
+  // 学年バッジカラー
+  const gradeBadgeColors = theme.customTheme?.gradeBadgeColors || {
+    '教員': 'purple',
+    'M2': 'blue',
+    'M1': 'green',
+    'B4': 'orange'
+  };
+
   const [daysRanking, setDaysRanking] = useState<RankingData[]>([]);
   const [timeRanking, setTimeRanking] = useState<RankingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -393,7 +403,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
           top={-3}
           left={4}
           borderRadius="full"
-          bg="#131113"
+          bg={theme.colors.neutral[900] || "#131113"}
           p="2px"
           boxShadow="0 2px 5px rgba(0, 0, 0, 0.3)"
           zIndex={2}
@@ -413,11 +423,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
 
         <Flex align="center" position="relative" zIndex={1} mt={1} ml={9}>
           <Box mr={3} ml={8}>
-            <Badge colorScheme={
-              item.grade === '教員' ? 'purple' : 
-              item.grade === 'M2' ? 'blue' :
-              item.grade === 'M1' ? 'green' : 'orange'
-            } fontSize="md" px={2} py={1} borderRadius="md">
+            <Badge colorScheme={gradeBadgeColors[item.grade]} fontSize="md" px={2} py={1} borderRadius="md">
               {item.grade}
             </Badge>
           </Box>

@@ -60,12 +60,23 @@ export function getStudentById(studentId: string): Student | null {
 /**
  * 学生名を取得する
  * @param studentId 学生ID
- * @param defaultValue 存在しない場合のデフォルト値
- * @returns 学生名またはデフォルト値
+ * @returns 学生名、見つからない場合は「不明」を返す
  */
-export function getStudentNameById(studentId: string, defaultValue: string = `ID:${studentId}`): string {
-  const student = getStudentById(studentId);
-  return student ? student.name : defaultValue;
+export function getStudentNameById(studentId: string): string {
+  if (!studentId) return '不明';
+  
+  try {
+    const storedStudents = localStorage.getItem('students');
+    if (storedStudents) {
+      const students = JSON.parse(storedStudents);
+      const student = students.find((s: any) => s.id === studentId);
+      return student ? student.name : '不明';
+    }
+  } catch (error) {
+    console.error('学生データ取得エラー:', error);
+  }
+  
+  return '不明';
 }
 
 /**
@@ -95,9 +106,41 @@ export function getAllStudents(): Student[] {
 /**
  * 学生IDから学生の学年を取得する
  * @param studentId 学生ID
- * @returns 学生の学年（存在しない場合は空文字列）
+ * @returns 学年、見つからない場合は「不明」を返す
  */
 export function getStudentGradeById(studentId: string): string {
-  const student = getStudentById(studentId);
-  return student ? student.grade : '';
+  if (!studentId) return '不明';
+  
+  try {
+    const storedStudents = localStorage.getItem('students');
+    if (storedStudents) {
+      const students = JSON.parse(storedStudents);
+      const student = students.find((s: any) => s.id === studentId);
+      return student ? student.grade : '不明';
+    }
+  } catch (error) {
+    console.error('学生データ取得エラー:', error);
+  }
+  
+  return '不明';
+}
+
+/**
+ * 学年からバッジの色を取得する
+ * @param grade 学年
+ * @returns バッジの色のkeyword
+ */
+export function getBadgeColorByGrade(grade: string): string {
+  switch (grade) {
+    case '教員':
+      return 'purple';
+    case 'M2':
+      return 'blue';
+    case 'M1':
+      return 'green';
+    case 'B4':
+      return 'orange';
+    default:
+      return 'gray';
+  }
 }

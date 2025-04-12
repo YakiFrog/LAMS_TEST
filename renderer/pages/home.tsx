@@ -1,5 +1,5 @@
 import React, { useContext, useMemo, useEffect } from 'react';
-import { Tabs, TabList, TabPanels, Tab, TabPanel, Box } from '@chakra-ui/react';
+import { Tabs, TabList, TabPanels, Tab, TabPanel, Box, useTheme } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import Tab1Content from '../components/Tab1Content';
 import Tab2Content from '../components/Tab2Content';
@@ -10,6 +10,7 @@ import { ClientContext } from './_app';
 export default function HomePage() {
   const scale = 98;
   const isClient = useContext(ClientContext);
+  const theme = useTheme(); // テーマを取得
 
   // メモ化されたアニメーション定義
   const animation = useMemo(() => {
@@ -69,11 +70,11 @@ export default function HomePage() {
     borderRadius: "3xl",
     _focus: { boxShadow: 'none' },
     letterSpacing: "wider",
-    _selected: { color: 'white', bg: '#131113' }
+    _selected: { color: 'white', bg: theme.colors.neutral[900] || '#131113' }
   };
 
   return (
-    <div style={{ backgroundColor: '#131113', height: '100vh' }}>
+    <div style={{ backgroundColor: theme.colors.neutral[900] || '#131113', height: '100vh' }}>
       <Box 
         p={4}
         width={`${scale}vw`}
@@ -123,7 +124,7 @@ export default function HomePage() {
           position="fixed"
           bottom="6%"
           right="5%"
-          bg="red.500"
+          bg={theme.colors.secondary[500] || "red.500"}
           color="white"
           borderRadius="2xl"
           fontWeight="bold"
@@ -135,7 +136,7 @@ export default function HomePage() {
           py={1.5}
           transform="rotate(-20deg)"
           letterSpacing="0.08em"
-          boxShadow="0 4px 6px rgb(171, 3, 3), inset 0 4px 6px rgba(250, 249, 157, 0.61)"
+          boxShadow={`0 4px 6px ${theme.colors.secondary[700] || 'rgb(171, 3, 3)'}, inset 0 4px 6px rgba(250, 249, 157, 0.61)`}
           animation={animation}
           fontFamily="'Yusei Magic', sans-serif"
           onClick={handleVersionBadgeClick}

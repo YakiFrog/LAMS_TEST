@@ -15,28 +15,11 @@ import {
   PopoverCloseButton,
   IconButton,
   Flex,
+  useTheme
 } from '@chakra-ui/react';
 import { ChevronUpIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import Papa from 'papaparse';
 import { getCurrentTime, resetTime } from '../utils/timeManager';
-
-// 色の強度レベル（滞在時間に応じて）- GitHub風の赤色グラデーション
-const COLOR_LEVELS = [
-  'rgb(235, 237, 240)', // レベル0: 出勤なし
-  'rgb(255, 200, 200)', // レベル1: 少し
-  'rgb(255, 150, 150)', // レベル2: やや少なめ
-  'rgb(255, 100, 100)', // レベル3: 中程度
-  'rgb(200, 0, 0)'      // レベル4: 長時間
-];
-
-// 滞在時間のしきい値（秒単位）
-const STAY_TIME_THRESHOLDS = [
-  0,       // レベル0
-  1800,    // レベル1: 30分
-  3600,    // レベル2: 1時間
-  10800,   // レベル3: 3時間
-  21600    // レベル4: 6時間以上
-];
 
 interface CalendarDataType {
   date: string; // YYYY-MM-DD形式
@@ -49,6 +32,25 @@ interface YearlyAttendanceCalendarProps {
 }
 
 const YearlyAttendanceCalendar: React.FC<YearlyAttendanceCalendarProps> = ({ studentId }) => {
+  const theme = useTheme();
+  // テーマから色を取得 (fallbackとして元の色配列を使用)
+  const COLOR_LEVELS = theme.customTheme?.calendarColors?.attendanceCalendar || [
+    'rgb(235, 237, 240)', // レベル0: 出勤なし
+    'rgb(255, 200, 200)', // レベル1: 少し
+    'rgb(255, 150, 150)', // レベル2: やや少なめ
+    'rgb(255, 100, 100)', // レベル3: 中程度
+    'rgb(200, 0, 0)'      // レベル4: 長時間
+  ];
+
+  // 滞在時間のしきい値（秒単位）
+  const STAY_TIME_THRESHOLDS = [
+    0,       // レベル0
+    1800,    // レベル1: 30分
+    3600,    // レベル2: 1時間
+    10800,   // レベル3: 3時間
+    21600    // レベル4: 6時間以上
+  ];
+
   const [calendarData, setCalendarData] = useState<Map<string, CalendarDataType>>(new Map());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
