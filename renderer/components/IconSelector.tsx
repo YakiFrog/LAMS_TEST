@@ -131,7 +131,6 @@ const iconCategories = [
     id: 'characters',
     name: 'キャラクター',
     icons: [
-      { id: 'user', icon: FaUser, label: '人物' },
       { id: 'userAlt', icon: FaUserAlt, label: '人型' },
       { id: 'skull', icon: FaSkull, label: 'ガイコツ' },
       { id: 'bone', icon: FaBone, label: '骨' },
