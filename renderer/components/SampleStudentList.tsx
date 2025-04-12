@@ -34,12 +34,13 @@ interface Props {
 }
 
 // 学生パネルサイズを計算するための定数
-const MIN_SCALE = 0.7;   // 最小サイズ倍率をより小さく（0.9から0.7に）
-const MAX_SCALE = 1.7;   // 最大サイズ倍率を少し大きく（1.7から1.8に）
-const BASE_WIDTH = 150;  // 基本幅を大きく（120から150に）
+const MIN_SCALE = 0.7;   // 最小サイズ倍率
+const MAX_SCALE = 1.7;   // 最大サイズ倍率
+const BASE_WIDTH = 150;  // 基本幅
 const BASE_HEIGHT = 60;  // 基本高さ
-const CHAR_WIDTH = 22;   // 1文字あたりの幅（ピクセル）を増加
-const MAX_PANELS_PER_ROW = 6; // 1行あたりの最大パネル数（レイアウト調整用）
+const CHAR_WIDTH = 22;   // 1文字あたりの幅（ピクセル）
+const MAX_PANELS_PER_ROW = 5; // 1行あたりの最大パネル数
+const PANEL_GAP = 45; // パネル間の固定間隔（px）を30pxから45pxに増加
 
 const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAttendanceChange }) => {
   // モーダル表示状態と選択された学生の状態管理
@@ -595,7 +596,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                 >
                   {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '5px' }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.2em', letterSpacing: '5px' }}>日</span>
                 </Badge>
-              <Wrap spacing={3} justify="flex-start" align="center">
+              <Wrap justify="flex-start" align="center" overflow="visible" gap={`${PANEL_GAP}px`}>
                 {/* その学年の学生だけをフィルタリングして表示 */}
                 {sortStudents().filter(student => student.grade === grade).map(student => {
                   // 出勤日数に基づくスケール係数
@@ -603,7 +604,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   
                   // 各学年のパネル数に応じて幅を制限
                   const maxPanelWidth = gradeStudents.length > MAX_PANELS_PER_ROW 
-                    ? `${100 / MAX_PANELS_PER_ROW - 3}%` // 余白を少し減らす
+                    ? `${100 / MAX_PANELS_PER_ROW - 4}%` // より多くの余白を確保
                     : `${BASE_WIDTH * scale}px`;
                   
                   // スケールに基づいてパネルサイズを計算
@@ -624,8 +625,8 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   return (
                     <WrapItem 
                       key={student.id} 
-                      maxWidth={maxPanelWidth} 
-                      margin="0.25rem"
+                      maxWidth={maxPanelWidth}
+                      margin="0" // マージンを0に設定し、親のgapプロパティに依存
                       // 出勤日数が多いパネルの順序を後ろに（下段に表示されやすく）
                       order={attendanceDays > 0 ? -attendanceDays : 0}
                     >
@@ -671,14 +672,14 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         }}
                         overflow="visible" // 内容がはみ出ても表示できるように
                         bg="white" // 頻繁な出勤者は薄紫色の背景
+                        zIndex={1} // スタッキングコンテキストを明示的に設定
                       >
                         {/* 出勤日数と累計滞在時間表示 - 日数が1以上の場合のみ表示 */}
                         {attendanceDaysMap[student.id] > 0 && (
                           <Badge
                             position="absolute"
                             top="-11px"
-                            left="20%"
-                            transform="translateX(-50%)"
+                            left="10px"
                             colorScheme={isFrequent ? "purple" : "blue"} // 頻繁な出勤者は紫色のバッジ
                             fontSize={`${0.7 * scale}rem`}
                             borderRadius="full"
