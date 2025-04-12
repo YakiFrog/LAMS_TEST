@@ -131,6 +131,41 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
   // イベントが設定されている場合（サンプルデータを含む）
   const currentEvent = events[currentEventIndex];
 
+  // 残り日数の表示を生成する関数
+  const renderRemainingDays = (daysRemaining: number) => {
+    // 当日の場合
+    if (daysRemaining === 0) {
+      return (
+        <>
+          <span style={{ 
+            fontSize: '2.0em', 
+            color: '#FF0000',
+            fontWeight: 'bold', 
+            marginLeft: '0.1em', 
+            marginRight: '0.1em',
+            verticalAlign: '-0.1em',
+          }}>今日</span>
+        </>
+      );
+    } 
+    // それ以外の場合（1日以上）
+    else {
+      return (
+        <>
+          残り<span style={{ 
+            fontSize: '2.0em', 
+            color: '#FF0000',
+            fontWeight: 'bold', 
+            marginLeft: '0.1em', 
+            marginRight: '0.1em',
+            verticalAlign: '-0.1em',
+          }}>{daysRemaining}</span>
+          日
+        </>
+      );
+    }
+  };
+
   return (
     <Box
       p={2}
@@ -223,15 +258,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
               lineHeight="1"
               textAlign="right"
             >
-              残り<span style={{ 
-                fontSize: '2.0em', 
-                color: '#FF0000',
-                fontWeight: 'bold', 
-                marginLeft: '0.1em', 
-                marginRight: '0.1em',
-                verticalAlign: '-0.1em',
-              }}>{currentEvent.daysRemaining}</span>
-              日
+              {renderRemainingDays(currentEvent.daysRemaining)}
               <span style={{ 
                 fontSize: '0.7em',
                 color: '#FFF',

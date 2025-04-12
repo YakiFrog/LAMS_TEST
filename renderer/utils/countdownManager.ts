@@ -50,6 +50,10 @@ export const loadCountdownEventsFromCSV = async (): Promise<CountdownEvent[]> =>
 
     // データの加工
     const now = getCurrentTime();
+    // 現在日の0時0分0秒を取得（日付の比較用）
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    
     const events: CountdownEvent[] = [];
 
     parsedData.data.forEach((row: any) => {
@@ -68,11 +72,15 @@ export const loadCountdownEventsFromCSV = async (): Promise<CountdownEvent[]> =>
             throw new Error('未対応の日付形式');
           }
 
-          // 今日の日付との差分を計算（日単位）
-          const timeDiff = eventDate.getTime() - now.getTime();
-          const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+          // イベント日の0時0分0秒を設定（日付の比較用）
+          const eventDay = new Date(eventDate);
+          eventDay.setHours(0, 0, 0, 0);
 
-          // 過去の予定は除外
+          // 今日の日付との差分を計算（日単位）
+          const timeDiff = eventDay.getTime() - today.getTime();
+          const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+
+          // 過去の予定は除外（前日以前のものは表示しない）
           if (daysDiff < 0) {
             return;
           }
