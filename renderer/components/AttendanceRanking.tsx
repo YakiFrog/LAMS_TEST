@@ -391,11 +391,33 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         width: "100%",
         height: "100%",
         background: `linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 45%, ${colorScheme.highlight} 60%, transparent 10%), 
-            linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 70%, ${colorScheme.highlight} 73%, transparent 70%)`,
+        linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 70%, ${colorScheme.highlight} 73%, transparent 70%)`,
         opacity: 0.3,
         pointerEvents: "none",
         zIndex: 0,
-        overflow: "hidden"
+        overflow: "hidden",
+        borderRadius: "inherit",
+        backgroundSize: "300% 100%",
+        animation: "shimmerEffect 6s ease-in-out infinite",
+      }}
+      sx={{
+        "@keyframes shimmerEffect": {
+          "0%, 100%": {
+            backgroundPosition: "100% 0%",
+            opacity: 0.1,
+          },
+          "30%": {
+            backgroundPosition: "70% 0%",
+            opacity: 0.3,
+          },
+          "50%": {
+            backgroundPosition: "-100% 0%",
+            opacity: 0.1,
+          },
+          "60%": {
+            opacity: 0.1,
+          }
+        }
       }}
     >
         <Box
