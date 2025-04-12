@@ -26,6 +26,9 @@ interface Window {
   // Next.js開発モード用の変数
   __NEXT_DATA__?: any;
   
+  // カウントダウン用変数
+  countdownEvents?: Array<{ name: string; date: Date; daysRemaining: number }>;
+  
   // 曜日ごとの日付情報
   weekdayDatesInfo?: Record<number, string[]>;
   

@@ -11,6 +11,7 @@ import { DownloadIcon, TimeIcon, SettingsIcon, ChevronRightIcon, RepeatIcon, Add
 import { FaFastForward, FaSearchPlus, FaSearchMinus, FaRedo, FaExpandArrowsAlt } from 'react-icons/fa';
 import { getCurrentTime, getJapanTime, setOverrideTime, isTimeOverrideEnabled, getOverrideTime, advanceTimeBy, getJapanTimeISOString } from '../utils/timeManager';
 import AttendanceRanking from './AttendanceRanking';
+import CountdownPanel from './CountdownPanel';
 
 // 型定義: 学生情報
 interface Student {
@@ -609,7 +610,7 @@ const Tab1Content: React.FC = () => {
   }, [zoomLevel]);
 
   return (
-    <Box p={2}>
+    <Box p={2} pt={6}>
       {/* SVGフィルター定義: アイコンに影効果 */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -625,6 +626,16 @@ const Tab1Content: React.FC = () => {
           </filter>
         </defs>
       </svg>
+
+      {/* カウントダウンパネル - 新規追加 */}
+      <Box
+        position="absolute"
+        top="7%"
+        left="16%"
+        zIndex={1000}
+      >
+        <CountdownPanel transitionInterval={8000} />
+      </Box>
 
       {/* ズームコントロールパネル */}
       <Box

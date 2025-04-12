@@ -142,6 +142,9 @@ const Tab3Content: React.FC = () => {
   // エクスポート処理中かどうかの状態
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
+  // カウントダウン設定用のState
+  const [countdownFilePath, setCountdownFilePath] = useState<string>('');
+
   // 初期読み込み時にローカルストレージから学生データを取得
   useEffect(() => {
     const storedStudents = localStorage.getItem('students');
@@ -155,6 +158,14 @@ const Tab3Content: React.FC = () => {
     const savedExportPath = localStorage.getItem('exportPath');
     if (savedExportPath) {
       setExportPath(savedExportPath);
+    }
+  }, []);
+
+  // 初期読み込み時にカウントダウンパス設定を取得
+  useEffect(() => {
+    const savedCountdownPath = localStorage.getItem('countdownFilePath');
+    if (savedCountdownPath) {
+      setCountdownFilePath(savedCountdownPath);
     }
   }, []);
 
@@ -578,6 +589,59 @@ const Tab3Content: React.FC = () => {
     }
   };
 
+  // カウントダウン設定パスを選択するダイアログを開く関数
+  const selectCountdownFilePath = async () => {
+    try {
+      if (electronAPI) {
+        console.log('Using Electron API to select countdown file');
+        try {
+          const result = await electronAPI.selectDirectory();
+          
+          if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
+            setCountdownFilePath(result.filePaths[0] + "/countdown.csv");
+            return;
+          }
+        } catch (error) {
+          console.error('Error calling selectDirectory for countdown file:', error);
+          toast({
+            title: "ファイル選択エラー",
+            description: `Electron APIのエラー: ${error}`,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+      }
+      
+      // フォールバック
+      const path = prompt('カウントダウンCSVファイルのパスを入力してください:');
+      if (path) {
+        setCountdownFilePath(path);
+      }
+    } catch (error) {
+      console.error('カウントダウンファイル選択エラー:', error);
+      toast({
+        title: "ファイル選択エラー",
+        description: `${error}`,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // カウントダウン設定パスを保存する関数
+  const saveCountdownFilePath = () => {
+    localStorage.setItem('countdownFilePath', countdownFilePath);
+    toast({
+      title: "カウントダウン設定保存完了",
+      description: "カウントダウンCSVファイルパスが保存されました",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
   // 手動エクスポート実行関数
   const handleManualExport = async () => {
     if (!exportPath) {
@@ -765,6 +829,35 @@ const Tab3Content: React.FC = () => {
               ※エクスポートは月ごとのファイル（attendance_YYYY-MM.csv）に保存されます
             </Text>
           </HStack>
+        </Box>
+
+        {/* カウントダウン設定セクション - 新規追加 */}
+        <Box mt={4} p={4} borderWidth="1px" borderRadius="lg" bg="blue.50">
+          <Heading size="md" mb={2}>カウントダウン設定</Heading>
+          <HStack spacing={2} mb={2}>
+            <Input 
+              placeholder="カウントダウンCSVファイルのパスを選択" 
+              value={countdownFilePath} 
+              onChange={(e) => setCountdownFilePath(e.target.value)}
+              flexGrow={1}
+            />
+            <Button 
+              onClick={selectCountdownFilePath} 
+              colorScheme="blue"
+            >
+              参照
+            </Button>
+            <Button 
+              onClick={saveCountdownFilePath} 
+              colorScheme="green"
+              isDisabled={!countdownFilePath}
+            >
+              保存
+            </Button>
+          </HStack>
+          <Text fontSize="sm" color="blue.700">
+            ※CSVファイル形式: name,date のヘッダー付きで、dateはYYYY-MM-DD形式（例: 2023-12-31）
+          </Text>
         </Box>
       </Box>
 
