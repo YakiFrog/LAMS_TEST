@@ -609,7 +609,7 @@ const Tab1Content: React.FC = () => {
   }, [zoomLevel]);
 
   return (
-    <Box p={6} height="0vh">
+    <Box p={2}>
       {/* SVGフィルター定義: アイコンに影効果 */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
@@ -629,7 +629,7 @@ const Tab1Content: React.FC = () => {
       {/* ズームコントロールパネル */}
       <Box
         position="absolute"
-        top="9%"
+        top="8%"
         right="5%"
         zIndex={1000}
         bg="#131113"
@@ -706,7 +706,7 @@ const Tab1Content: React.FC = () => {
       {/* 現在時刻と天気アイコンを表示するボックス */}
       <Box
         position="absolute"
-        top="9%"
+        top="8%"
         left="50%"
         transform="translateX(-50%)"
         zIndex={1000}
@@ -909,8 +909,8 @@ const Tab1Content: React.FC = () => {
                 borderColor="#131113"
                 borderRadius="3xl"
                 px={6}
-                pt={3}
-                pb={1}
+                pt={5}
+                pb={0}
                 mt={2}
                 boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
                 color="#131113"

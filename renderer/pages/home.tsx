@@ -82,7 +82,7 @@ export default function HomePage() {
         maxW="100vw"
         maxH="100vh"
         margin="auto"
-        border="1px solid #ccc" 
+        border="1px solid #ccc"
         borderRadius="3xl"
         position="fixed"
         top="50%"
