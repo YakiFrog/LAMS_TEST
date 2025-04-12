@@ -898,7 +898,7 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
         <Box 
         position="absolute"
         top="0"
-        right="-80%" 
+        right="-75%" // -80%から-65%に変更して左に移動
         width="70%"
         height="100%"
         p={4} 

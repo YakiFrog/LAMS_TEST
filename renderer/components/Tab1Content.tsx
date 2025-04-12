@@ -897,7 +897,7 @@ const Tab1Content: React.FC = () => {
       {/* 2列レイアウトに変更: 左側に学生リスト、右側にランキング */}
       <Grid 
         mt={24} 
-        templateColumns={{ base: "1fr", lg: "2fr 1fr" }}
+        templateColumns={{ base: "1fr", lg: "2.1fr 1fr" }}
         gap={6}
       >
         {/* 左側：学生情報を学年別に表示 */}

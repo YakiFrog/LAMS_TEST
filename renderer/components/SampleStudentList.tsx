@@ -590,8 +590,8 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
               {/* 学年の平均出勤日数を表示 */}
                 <Badge
                   position="absolute"
-                  bottom="-13px"
-                  right="-17px"
+                  bottom="-20px"
+                  right="-15px"
                   bg={theme.colors.neutral[900] || "black"}
                   color="white"
                   fontSize="xl" // increased from sm
@@ -726,7 +726,8 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                           overflow="visible"
                           textOverflow="clip"
                           whiteSpace="nowrap" // 改行を許可せず、1行で表示
-                          // color={isFrequent ? "white" : "black"} // 頻繁な出勤者は白文字
+                          fontWeight="black"
+                          letterSpacing="0.05em" // Adds space between characters
                         >
                           {student.name}
                         </Text>
