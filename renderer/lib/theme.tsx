@@ -98,39 +98,39 @@ const weekdayColors = {
 // AttendanceRankingで使用するランキング色
 const rankingColors = [
   { // 1位
-    bg: "linear-gradient(135deg, #FFD700 10%, #FFC800 40%, #FFD700 60%, #FFEF9A 100%)", 
+    bg: "linear-gradient(135deg,rgb(255, 217, 0) 10%, #FFD700 40%, rgb(255, 217, 0) 60%, #FFEF9A 100%)",
     text: "#131113", 
-    border: "#FFB700", 
+    border: "#FFD700",
     shadowColor: "rgba(255, 215, 0, 0.6)",
-    highlight: "rgba(255, 255, 200, 0.7)"
+    highlight: "rgba(255, 255, 255, 0.7)"
   },
   { // 2位
-    bg: "linear-gradient(135deg, #E8E8E8 10%, #C0C0C0 40%, #D8D8D8 60%, #F5F5F5 100%)", 
+    bg: "linear-gradient(135deg,rgb(194, 194, 194) 10%, #D0D0D0 40%, rgb(194, 194, 194) 60%, #E0E0E0 100%)",
     text: "#131113", 
-    border: "#A0A0A0", 
+    border: "#C0C0C0",
     shadowColor: "rgba(192, 192, 192, 0.6)",
     highlight: "rgba(255, 255, 255, 0.7)"
   }, 
   { // 3位
-    bg: "linear-gradient(135deg, #CD7F32 10%, #A05B2C 40%, #CD7F32 60%, #E0A872 100%)", 
-    text: "#131113", 
-    border: "#B06000", 
-    shadowColor: "rgba(205, 127, 50, 0.6)",
-    highlight: "rgba(255, 235, 205, 0.7)"
+    bg: "linear-gradient(135deg,rgb(255, 142, 30) 10%, #FFA500 40%, rgb(255, 142, 30) 60%, #FFCC80 100%)",
+    text: "#131113",
+    border: "#FFA500",
+    shadowColor: "rgba(255, 165, 0, 0.6)",
+    highlight: "rgba(255, 255, 255, 0.7)"
   }, 
   { // 4位
-    bg: "linear-gradient(135deg, #E2E8F0 10%, #CBD5E0 40%, #E2E8F0 60%, #EDF2F7 100%)", 
+    bg: "linear-gradient(135deg,rgb(182, 226, 255) 10%, #A0C4FF 40%, rgb(182, 226, 255) 60%, #E0E7FF 100%)",
     text: "#131113", 
-    border: "#CBD5E0", 
-    shadowColor: "rgba(160, 174, 192, 0.4)",
-    highlight: "rgba(255, 255, 255, 0.5)"
+    border: "#A0C4FF",
+    shadowColor: "rgba(173, 216, 230, 0.6)",
+    highlight: "rgba(255, 255, 255, 0.7)"
   }, 
   { // 5位
     bg: "linear-gradient(135deg, #F7FAFC 10%, #EDF2F7 40%, #F7FAFC 60%, #FFFFFF 100%)", 
     text: "#131113", 
     border: "#E2E8F0", 
-    shadowColor: "rgba(160, 174, 192, 0.3)",
-    highlight: "rgba(255, 255, 255, 0.5)"
+    shadowColor: "rgba(255, 255, 255, 0.6)",
+    highlight: "rgba(255, 255, 255, 0.7)"
   },
 ];
 
