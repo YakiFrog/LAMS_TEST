@@ -408,11 +408,11 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
           },
           "30%": {
             backgroundPosition: "70% 0%",
-            opacity: 0.3,
+            opacity: 0.5,
           },
-          "50%": {
+          "45%": {
             backgroundPosition: "-100% 0%",
-            opacity: 0.1,
+            opacity: 0.2,
           },
           "60%": {
             opacity: 0.1,
