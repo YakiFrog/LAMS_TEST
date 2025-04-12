@@ -727,10 +727,10 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                       <Box
                         borderWidth={
                           attendanceStates[student.id]?.isAttending
-                            ? "3px"
+                            ? "4px"
                             : attendanceStates[student.id]?.leavingTime
-                            ? "3px"
-                            : isFrequent ? "2px" : "1px" // 頻繁な出勤者は太めの枠線
+                            ? "4px"
+                            : isFrequent ? "3px" : "1px" // 頻繁な出勤者は太めの枠線
                         }
                         borderRadius="3xl"
                         py={2}

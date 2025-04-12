@@ -140,6 +140,8 @@ export function getBadgeColorByGrade(grade: string): string {
       return 'green';
     case 'B4':
       return 'orange';
+    case '全員':  // 「全員」の場合も追加
+      return 'purple';
     default:
       return 'gray';
   }

@@ -404,6 +404,25 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
 
     // 滞在時間の表示をフォーマット
     const formatTimeDisplay = (displayValue: string, value: number) => {
+      const textStyle = {
+        fontSize: '1.8em',  // Increased from 1.5em to 1.8em
+        fontStyle: 'italic',
+        color: 'white',
+        marginRight: '5px',
+        textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 2.5px 0 #000, 0 -2.5px 0 #000, 2.5px 0 0 #000, -2.5px 0 0 #000',
+        display: 'inline-block',  // Ensures the text stays inline while having block properties
+        lineHeight: '1',  // Keeps the line height tight
+        verticalAlign: 'baseline'  // Aligns with surrounding text
+      };
+      
+      const unitStyle = {
+        color: 'white',
+        fontStyle: 'italic',
+        textShadow: '2.5px 2.5px 0 #000, -2.5px -2.5px 0 #000, 2.5px -2.5px 0 #000, -2.5px 2.5px 0 #000, 0 2.5px 0 #000, 0 -2.5px 0 #000, 2.5px 0 0 #000, -2.5px 0 0 #000',
+        fontSize: '1.1em',
+        marginRight: '8px'
+      };
+
       if (type === '滞在時間') {
         // 総秒数から時間、分、秒に変換
         const hours = Math.floor(value / 3600);
@@ -414,9 +433,8 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         if (hours > 0) {
           return (
             <>
-              <span style={{ fontSize: '1.5em' }}>{hours}</span>時間
-              <span style={{ fontSize: '1.5em' }}>{minutes}</span>分
-              <span style={{ fontSize: '1.5em' }}>{seconds}</span>秒
+              <span style={textStyle}>{hours}</span><span style={unitStyle}>時間</span>
+              <span style={textStyle}>{minutes}</span><span style={unitStyle}>分</span>
             </>
           );
         }
@@ -424,21 +442,25 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         else if (minutes > 0) {
           return (
             <>
-              <span style={{ fontSize: '1.5em' }}>{minutes}</span>分
-              <span style={{ fontSize: '1.5em' }}>{seconds}</span>秒
+              <span style={textStyle}>{minutes}</span><span style={unitStyle}>分</span>
+              <span style={textStyle}>{seconds}</span><span style={unitStyle}>秒</span>
             </>
           );
         }
         // 秒だけの場合
         else {
-          return <><span style={{ fontSize: '1.5em' }}>{seconds}</span>秒</>;
+          return (
+            <>
+              <span style={textStyle}>{seconds}</span><span style={unitStyle}>秒</span>
+            </>
+          );
         }
       }
       
       // 出勤日数の場合
       return (
         <>
-          <span style={{ fontSize: '1.5em' }}>{item.value}</span>日
+          <span style={textStyle}>{item.value}</span><span style={unitStyle}>日</span>
         </>
       );
     };
@@ -562,7 +584,8 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
             fontWeight="bold"
             letterSpacing="wider"
             textShadow="0 1px 2px rgba(0,0,0,0.1)"
-            mr={2}
+            mr={3}
+            color="white" // テキスト全体を白色に
           >
             {formatTimeDisplay(item.displayValue, item.value)}
           </Text>
@@ -601,7 +624,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
   
   return (
     <Box width="100%" mt={0}>
-      <VStack spacing={2} align="stretch">
+      <VStack spacing={1} align="stretch">
         {/* 出勤日数ランキング */}
         <Box>
           <Box {...sectionHeaderStyle}>

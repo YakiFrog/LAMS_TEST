@@ -610,7 +610,7 @@ const Tab1Content: React.FC = () => {
   }, [zoomLevel]);
 
   return (
-    <Box p={2} pt={6}>
+    <Box p={2} pt={10}>
       {/* SVGフィルター定義: アイコンに影効果 */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
