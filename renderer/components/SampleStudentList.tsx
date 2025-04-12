@@ -85,7 +85,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
   const contentScale = zoomLevel / 100;
 
   // アイコンデータを取得するstate
-  const [studentIcons, setStudentIcons] = useState<{[studentId: string]: string}>({});
+  const [studentIcons, setStudentIcons] = useState<{[studentId: string]: any}>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -594,6 +594,34 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
     };
   }, []);
 
+  // アイコン情報を取得する関数
+  const getStudentIconInfo = (studentId: string): {
+    iconId: string | null,
+    iconColor: string,
+    bgColor: string
+  } => {
+    const iconData = studentIcons[studentId];
+    
+    // データがない場合
+    if (!iconData) return { iconId: null, iconColor: '#131113', bgColor: '#FFFFFF' };
+    
+    // 新形式（オブジェクト）と旧形式（文字列）の両方に対応
+    if (typeof iconData === 'object') {
+      return {
+        iconId: iconData.iconId || null,
+        iconColor: iconData.iconColor || '#131113',
+        bgColor: iconData.bgColor || '#FFFFFF'
+      };
+    } else {
+      // 旧形式の場合はIDのみ返し、デフォルトの色を設定
+      return {
+        iconId: iconData,
+        iconColor: '#131113',
+        bgColor: '#FFFFFF'
+      };
+    }
+  };
+
   const onClose = () => {
     // モーダルを閉じる処理
     setIsOpen(false);
@@ -682,8 +710,9 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   const totalStayTime = totalStayTimeMap[student.id] || 0;
                   const isFrequent = attendanceDays > (maxAttendanceDays * 0.7); // 70%以上なら頻繁とみなす
 
-                  // 学生のアイコンを取得
-                  const studentIconId = studentIcons[student.id];
+                  // 学生のアイコン情報を取得
+                  const iconInfo = getStudentIconInfo(student.id);
+                  const studentIconId = iconInfo.iconId;
                   const StudentIcon = studentIconId ? getIconById(studentIconId) : null;
                   
                   return (
@@ -748,7 +777,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             position="absolute"
                             top="-6px"
                             right="-6px"
-                            bg="white"
+                            bg={iconInfo.bgColor}
                             borderRadius="full"
                             p={2}
                             borderColor={
@@ -763,7 +792,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                           >
                             {React.createElement(StudentIcon, {
                               size: 20 * scale,
-                              color: theme.colors.neutral[800] || "#2D3748"
+                              color: iconInfo.iconColor
                             })}
                           </Box>
                         )}

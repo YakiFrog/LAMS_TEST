@@ -808,31 +808,49 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   // アイコン設定関連のstate
   const [iconSettingOpen, setIconSettingOpen] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+  const [selectedIconColor, setSelectedIconColor] = useState<string>('#131113'); // 追加: アイコンの色
+  const [selectedBgColor, setSelectedBgColor] = useState<string>('#FFFFFF'); // 追加: 背景色
   
   // 学生IDからアイコン設定を取得する関数
-  const getStudentIcon = (studentId: string | null): string | null => {
-    if (!studentId) return null;
+  const getStudentIcon = (studentId: string | null): { iconId: string | null, iconColor: string, bgColor: string } => {
+    if (!studentId) return { iconId: null, iconColor: '#131113', bgColor: '#FFFFFF' };
     
     try {
       const iconsData = localStorage.getItem('studentIcons');
       if (iconsData) {
         const icons = JSON.parse(iconsData);
-        return icons[studentId] || null;
+        if (icons[studentId]) {
+          // 新形式（オブジェクト）と旧形式（文字列）の両方に対応
+          if (typeof icons[studentId] === 'object') {
+            return {
+              iconId: icons[studentId].iconId || null,
+              iconColor: icons[studentId].iconColor || '#131113',
+              bgColor: icons[studentId].bgColor || '#FFFFFF'
+            };
+          } else {
+            // 旧形式の場合はIDのみ返し、デフォルトの色を設定
+            return {
+              iconId: icons[studentId],
+              iconColor: '#131113',
+              bgColor: '#FFFFFF'
+            };
+          }
+        }
       }
     } catch (error) {
       console.error('アイコン設定の読み込みエラー:', error);
     }
     
-    return null;
+    return { iconId: null, iconColor: '#131113', bgColor: '#FFFFFF' };
   };
   
   // 学生のアイコン設定を保存する関数
-  const saveStudentIcon = (studentId: string, iconId: string) => {
+  const saveStudentIcon = (studentId: string, iconSettings: { iconId: string, iconColor: string, bgColor: string }) => {
     try {
       const iconsData = localStorage.getItem('studentIcons');
       const icons = iconsData ? JSON.parse(iconsData) : {};
       
-      icons[studentId] = iconId;
+      icons[studentId] = iconSettings;
       localStorage.setItem('studentIcons', JSON.stringify(icons));
       
       toast({
@@ -855,15 +873,21 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   // モーダル開閉時に選択中のアイコンを更新
   useEffect(() => {
     if (isOpen && student) {
-      const icon = getStudentIcon(student.id);
-      setSelectedIcon(icon);
+      const iconSettings = getStudentIcon(student.id);
+      setSelectedIcon(iconSettings.iconId);
+      setSelectedIconColor(iconSettings.iconColor);
+      setSelectedBgColor(iconSettings.bgColor);
     }
   }, [isOpen, student]);
   
   // アイコン設定を保存して閉じる
   const handleSaveIcon = () => {
     if (student && selectedIcon) {
-      saveStudentIcon(student.id, selectedIcon);
+      saveStudentIcon(student.id, { 
+        iconId: selectedIcon,
+        iconColor: selectedIconColor,
+        bgColor: selectedBgColor
+      });
       setIconSettingOpen(false);
     }
   };
@@ -872,7 +896,13 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
   const handleClearIcon = () => {
     if (student) {
       setSelectedIcon(null);
-      saveStudentIcon(student.id, '');
+      setSelectedIconColor('#131113');
+      setSelectedBgColor('#FFFFFF');
+      saveStudentIcon(student.id, { 
+        iconId: '', 
+        iconColor: '#131113', 
+        bgColor: '#FFFFFF' 
+      });
       setIconSettingOpen(false);
     }
   };
@@ -933,11 +963,25 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
           >
             {/* 学生名の横にアイコン表示 */}
             <Flex justifyContent="center" alignItems="center">
-              {student && getStudentIcon(student.id) ? (
-                React.createElement(
-                  getIconById(getStudentIcon(student.id)) || FaUser, 
-                  { size: 24, style: { marginRight: '8px' } }
-                )
+              {student && getStudentIcon(student.id).iconId ? (
+                <Box
+                  bg={getStudentIcon(student.id).bgColor}
+                  p={2}
+                  borderRadius="full"
+                  mr={2}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  boxShadow="0 1px 3px rgba(0,0,0,0.2)"
+                >
+                  {React.createElement(
+                    getIconById(getStudentIcon(student.id).iconId) || FaUser, 
+                    { 
+                      size: 24, 
+                      color: getStudentIcon(student.id).iconColor 
+                    }
+                  )}
+                </Box>
               ) : (
                 <FaUser size={24} style={{ marginRight: '8px', opacity: 0.5 }} />
               )}
@@ -1008,7 +1052,11 @@ const StudentModal: React.FC<Props> = ({ isOpen, onClose, student, attendanceSta
             <ModalBody>
               <IconSelector 
                 selectedIcon={selectedIcon || ''} 
+                selectedIconColor={selectedIconColor}
+                selectedBgColor={selectedBgColor}
                 onSelectIcon={setSelectedIcon} 
+                onSelectIconColor={setSelectedIconColor}
+                onSelectBgColor={setSelectedBgColor}
               />
             </ModalBody>
             <ModalFooter>
