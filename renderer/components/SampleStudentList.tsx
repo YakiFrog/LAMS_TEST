@@ -771,28 +771,27 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         bg="white" // 頻繁な出勤者は薄紫色の背景
                         zIndex={1} // スタッキングコンテキストを明示的に設定
                       >
-                        {/* 学生のアイコンを右上に表示 */}
+                        {/* 学生のアイコンを背景として表示 */}
                         {StudentIcon && (
                           <Box
                             position="absolute"
-                            top="-6px"
-                            right="-6px"
-                            bg={iconInfo.bgColor}
-                            borderRadius="full"
-                            p={2}
-                            borderColor={
-                              attendanceStates[student.id]?.isAttending
-                                ? theme.colors.success[500] || "green.400"
-                                : attendanceStates[student.id]?.leavingTime
-                                ? theme.colors.secondary[500] || "red.400"
-                                : isFrequent ? theme.colors.accent[300] || "purple.300" : "gray.200"
-                            }
-                            boxShadow="0 2px 4px rgba(0, 0, 0, 0.5)"
-                            zIndex={3}
+                            top="35%"
+                            left="-65%"
+                            right="0"
+                            bottom="0"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            opacity={0.2} // うっすらと表示
+                            zIndex={0} // 背景レイヤー
+                            pointerEvents="none" // クリックイベントを透過
+                            overflow="hidden"
+                            borderRadius="inherit"
                           >
                             {React.createElement(StudentIcon, {
-                              size: 20 * scale,
-                              color: iconInfo.iconColor
+                              size: 30 * scale, // サイズを大きく設定
+                              color: iconInfo.iconColor,
+                              style: { opacity: 1 } // さらに透明度を調整
                             })}
                           </Box>
                         )}
@@ -811,6 +810,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             boxShadow="0 1px 2px rgba(0,0,0,0.2)"
                             display="flex"
                             alignItems="center"
+                            zIndex={2} // バッジを名前より前面に
                           >
                             <span>{attendanceDaysMap[student.id]}日</span>
                             {totalStayTime > 0 && (
@@ -830,6 +830,8 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                           whiteSpace="nowrap" // 改行を許可せず、1行で表示
                           fontWeight="black"
                           letterSpacing="0.05em" // Adds space between characters
+                          zIndex={1} // テキストをアイコンの上に表示
+                          position="relative" // スタッキングコンテキスト作成
                         >
                           {student.name}
                         </Text>
