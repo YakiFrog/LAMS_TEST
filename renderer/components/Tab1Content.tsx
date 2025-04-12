@@ -627,21 +627,47 @@ const Tab1Content: React.FC = () => {
         </defs>
       </svg>
 
-      {/* カウントダウンパネル - 新規追加 */}
+      {/* 統合されたカウントダウンと時計パネル */}
       <Box
         position="absolute"
-        top="7%"
-        left="16%"
+        top="8%"
+        left="50%"
+        transform="translateX(-50%)"
         zIndex={1000}
       >
-        <CountdownPanel transitionInterval={8000} />
+        <CountdownPanel 
+          transitionInterval={8000}
+          currentTime={currentTime}
+          onTimeSettingClick={onOpen}
+          onClockClick={handleClockClick}
+          isBouncing={isBouncing}
+        />
+        {/* 天気アイコンが設定されていれば表示 */}
+        {weatherIcon && (
+          <Box
+            position="absolute"
+            right={"-2.0%"}
+            bottom={"-30%"}
+            as="span"
+            fontSize="7xl"
+            color="white"
+            ml={2}
+            userSelect="none"
+            css={{
+              filter: 'url(#outline)',
+              animation: `${float} 5s ease-in-out infinite`,
+            }}
+          >
+            {weatherIcon}
+          </Box>
+        )}
       </Box>
 
       {/* ズームコントロールパネル */}
       <Box
         position="absolute"
         top="8%"
-        right="5%"
+        right="1.5%"
         zIndex={1000}
         bg="#131113"
         py={2}
@@ -712,100 +738,6 @@ const Tab1Content: React.FC = () => {
             />
           </Tooltip>
         </HStack>
-      </Box>
-
-      {/* 現在時刻と天気アイコンを表示するボックス */}
-      <Box
-        position="absolute"
-        top="8%"
-        left="50%"
-        transform="translateX(-50%)"
-        zIndex={1000}
-        bg="#131113"
-        py={3}
-        px={8}  // 10から6に変更して横幅を小さく
-        borderRadius="full"
-        onClick={handleClockClick} // リロード処理を実行
-        cursor="pointer"
-        transition="transform 0.1s ease-in-out"
-        animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
-        transformOrigin="bottom"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        width="auto" // 幅を調整
-        minWidth="32vw" // 42vwから32vwに変更して横幅を小さく
-        height="auto" // 高さをコンテンツに合わせて自動調整
-        boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
-        whiteSpace="nowrap"
-      >
-        <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" mr={2} letterSpacing="wider">
-          {/* 日付と時刻の表示 - クライアントサイドでのみレンダリング */}
-          {isClient && isMounted && (
-            <>
-              {currentTime.toLocaleDateString('ja-JP', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'short',
-              })}
-              {"　"}
-              {currentTime.toLocaleTimeString('ja-JP')}
-            </>
-          )}
-        </Text>
-        {/* 時間オーバーライド中の場合のバッジ - クライアントサイドでのみレンダリング */}
-        {isClient && isTimeOverrideEnabled() && (
-          <Badge
-            position="absolute"
-            top="-40%"
-            left="50%"
-            transform="translateX(-50%)"
-            colorScheme="red"
-            fontSize="sm"
-            px={3}
-            py={1}
-            borderRadius="full"
-            boxShadow="0 0 5px rgba(255, 0, 0, 0.5)"
-          >
-            時間操作モード
-          </Badge>
-        )}
-        {/* 時間設定アイコン */}
-        <Tooltip label="時間設定">
-          <IconButton
-            aria-label="時間設定"
-            icon={<TimeIcon />}
-            colorScheme="blue"
-            variant="ghost"
-            fontSize="lg"
-            color="white"
-            _hover={{ bg: "rgba(255,255,255,0.2)" }}
-            onClick={(e) => {
-              e.stopPropagation(); // ここが重要：親要素へのイベント伝播を停止
-              onOpen();
-            }}
-          />
-        </Tooltip>
-        {/* 天気アイコンが設定されていれば表示 */}
-        {weatherIcon && (
-          <Box
-            position="absolute"
-            right={"-3.5%"}
-            bottom={"-30%"}
-            as="span"
-            fontSize="7xl"
-            color="white"
-            ml={2}
-            userSelect="none"
-            css={{
-              filter: 'url(#outline)',
-              animation: `${float} 5s ease-in-out infinite`,
-            }}
-          >
-            {weatherIcon}
-          </Box>
-        )}
       </Box>
 
       {/* 時間設定ドロワー */}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, Flex, Badge } from '@chakra-ui/react';
+import { Box, Text, Flex, Badge, Divider, Tooltip, IconButton } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import { loadCountdownEventsFromCSV, CountdownEvent } from '../utils/countdownManager';
-import { getCurrentTime } from '../utils/timeManager';
+import { getCurrentTime, isTimeOverrideEnabled } from '../utils/timeManager';
+import { TimeIcon } from '@chakra-ui/icons';
 
 // アニメーションの定義
 const fadeOut = keyframes`
@@ -17,9 +18,19 @@ const fadeIn = keyframes`
 
 interface CountdownPanelProps {
   transitionInterval?: number; // 切り替え間隔（ミリ秒）
+  currentTime: Date; // 現在時刻を受け取るプロパティを追加
+  onTimeSettingClick?: () => void; // 時間設定クリックハンドラ
+  onClockClick?: () => void; // 時計クリックハンドラ
+  isBouncing?: boolean; // バウンスアニメーション状態
 }
 
-const CountdownPanel: React.FC<CountdownPanelProps> = ({ transitionInterval = 15000 }) => {
+const CountdownPanel: React.FC<CountdownPanelProps> = ({ 
+  transitionInterval = 15000,
+  currentTime,
+  onTimeSettingClick,
+  onClockClick,
+  isBouncing = false
+}) => {
   const [events, setEvents] = useState<CountdownEvent[]>([]);
   const [currentEventIndex, setCurrentEventIndex] = useState<number>(0);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
@@ -93,19 +104,26 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({ transitionInterval = 15
     return () => clearInterval(timerId);
   }, [events.length, transitionInterval]);
 
+  // 統合パネルのバウンスアニメーション
+  const bounce = keyframes`
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+    100% { transform: translateY(0); }
+  `;
+
   // 読み込み中の状態表示
   if (isLoading) {
     return (
       <Box
-        p={2} 
-        borderRadius="2xl"
+        p={4} 
+        borderRadius="full"
         bg="#131113"
         color="white"
-        minWidth="15vw"
-        maxWidth="200px"
+        minWidth="50vw"
+        maxWidth="800px"
         textAlign="center"
       >
-        <Text fontSize="sm">カウントダウン情報を読み込み中...</Text>
+        <Text fontSize="md">情報を読み込み中...</Text>
       </Box>
     );
   }
@@ -113,80 +131,140 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({ transitionInterval = 15
   // イベントが設定されている場合（サンプルデータを含む）
   const currentEvent = events[currentEventIndex];
 
-return (
+  return (
     <Box
-        p={4}
-        borderRadius="full"
-        bg="#131113"
-        color="white"
-        boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
-        width="auto"
-        minWidth="300px"
-        textAlign="center"
-        position="relative"
-        left="-45%"
-        mt={4}
+      p={2}
+      py={1} // 上下のパディングをさらに減らす
+      borderRadius="full"
+      bg="#131113"
+      color="white"
+      boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
+      minWidth="55vw"
+      maxWidth="auto"
+      whiteSpace="nowrap" // 改行を防止
+      textAlign="center"
+      onClick={onClockClick}
+      cursor="pointer"
+      transition="transform 0.1s ease-in-out"
+      animation={isBouncing ? `${bounce} 0.1s ease-out` : 'none'}
+      transformOrigin="center"
+      position="relative"
     >
-        <Flex align="center" justify="space-between" width="100%">
-            {/* 対象学年バッジとイベント名 */}
-            <Flex align="center" ml={3} mr={8} overflow="hidden" position="relative" minWidth="120px">
-                <Box
-                    animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}
-                >
-                    <Flex alignItems="center">
-                        <Badge
-                            bg={gradeBadgeColors[currentEvent.target] || 'gray.500'}
-                            color="white"
-                            fontSize="medium"
-                            fontWeight="bold"
-                            px={2.0}
-                            mr={3.0}
-                            borderRadius="full"
-                        >
-                            {currentEvent.target}
-                        </Badge>
-                        <Text fontSize="medium" fontWeight="bold">
-                            {currentEvent.name}
-                            {events === sampleEvents && <span style={{ fontSize: '0.7em', color: '#FF6B6B', marginLeft: '0.3em' }}>(サンプル)</span>}
-                        </Text>
-                    </Flex>
-                </Box>
-            </Flex>
-
-            {/* 日数 */}
-            <Box overflow="hidden" position="relative" minWidth="100px" mt={-1}>
-                <Text 
-                    fontSize="xl"
-                    fontWeight="extrabold"
-                    animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}
-                    lineHeight="1"
-                    my={0}
-                >残り
-                    <span style={{ 
-                        fontSize: '1.7em', 
-                        color: '#FF0000',
-                        fontWeight: 'bold', 
-                        marginLeft: '0.2em', 
-                        marginRight: '0.2em',
-                        letterSpacing: '0.01em',
-                        verticalAlign: '-0.1em', // Changed from 'middle' to '-0.1em' to move it up
-                    }}>{currentEvent.daysRemaining}</span>日
-                </Text>
-            </Box>
-
-            {/* 日付 */}
-            <Box overflow="hidden" position="relative" minWidth="80px">
-                <Text 
-                    fontSize="xs"
-                    color="gray.300"
-                    animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}
-                >
-                    {currentEvent.date.toLocaleDateString()}
-                </Text>
-            </Box>
+      {/* 時間オーバーライド中の場合のバッジ */}
+      {isTimeOverrideEnabled() && (
+        <Badge
+          position="absolute"
+          top="-40%"
+          left="50%"
+          transform="translateX(-50%)"
+          colorScheme="red"
+          fontSize="sm"
+          px={3}
+          py={1}
+          borderRadius="full"
+          boxShadow="0 0 5px rgba(255, 0, 0, 0.5)"
+        >
+          時間操作モード
+        </Badge>
+      )}
+      
+      <Flex width="100%" flexWrap="nowrap" p={2}>
+        {/* 時計部分 (左側) */}
+        <Box flex="0 1 auto" pl={10} pr={5}>
+          <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" letterSpacing="-0.02em">
+            {currentTime.toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'short',
+            })}
+            {"　"}
+            {currentTime.toLocaleTimeString('ja-JP')}
+          </Text>
+        </Box>
+        
+        {/* 区切り線 */}
+        <Flex justifyContent="flex-end" flex="1 1 auto" align="center">
+          <Divider orientation="vertical" height="30px" mx={1} opacity={0.4} />
         </Flex>
+        
+        {/* カウントダウン部分 (右側) */}
+        <Flex flex="0 1 auto" align="center" justify="space-between" pl={5} pr={5}>
+          {/* 対象学年バッジとイベント名 */}
+          <Flex align="center" overflow="hidden" mr={1}> {/* マージンを縮小 */}
+            <Box animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}>
+              <Flex alignItems="center">
+                <Badge
+                  bg={gradeBadgeColors[currentEvent.target] || 'gray.500'}
+                  color="white"
+                  fontSize="xl" /* サイズを小さく */
+                  fontWeight="bold"
+                  px={3}
+                  mr={3} /* マージンを縮小 */
+                  borderRadius="full"
+                >
+                  {currentEvent.target}
+                </Badge>
+                <Text fontSize="2xl" fontWeight="bold" noOfLines={1} maxW="150px" mr={10}> {/* 幅を制限 */}
+                  {currentEvent.name}
+                  {events === sampleEvents && <span style={{ fontSize: '0.7em', color: '#FF6B6B', marginLeft: '0.2em' }}>(サンプル)</span>}
+                </Text>
+              </Flex>
+            </Box>
+          </Flex>
+
+          {/* 日数 - さらにコンパクトに */}
+          <Box overflow="hidden" position="relative" maxWidth="260px" flexShrink={0} ml={1}> {/* 幅を広げる */}
+            <Text 
+              fontSize="2xl"
+              fontWeight="extrabold"
+              animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}
+              lineHeight="1"
+              textAlign="right"
+            >
+              残り<span style={{ 
+                fontSize: '1.5em', 
+                color: '#FF0000',
+                fontWeight: 'bold', 
+                marginLeft: '0.1em', 
+                marginRight: '0.1em',
+                verticalAlign: '-0.1em',
+              }}>{currentEvent.daysRemaining}</span>
+              日
+              <span style={{ 
+                fontSize: '0.5em',
+                color: '#FFF',
+                fontWeight: 'normal', 
+                marginLeft: '2em',
+              }}>
+                {currentEvent.date.getFullYear()}年{currentEvent.date.getMonth() + 1}月{currentEvent.date.getDate()}日
+              </span>
+            </Text>
+          </Box>
+        </Flex>
+        
+        {/* 時間設定アイコン */}
+        <Tooltip label="時間設定">
+          <IconButton
+            aria-label="時間設定"
+            icon={<TimeIcon />}
+            colorScheme="blue"
+            variant="ghost"
+            fontSize="2xl"
+            p={0}
+            size="3xl"
+            color="white"
+            mr={10}
+            _hover={{ bg: "rgba(255,255,255,0.2)" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onTimeSettingClick) onTimeSettingClick();
+            }}
+          />
+        </Tooltip>
+      </Flex>
     </Box>
-);
+  );
 };
 
 export default CountdownPanel;
