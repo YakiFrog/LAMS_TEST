@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Heading, Text, Divider, HStack, Button, Input, FormControl, FormLabel, 
   IconButton, Switch, Tooltip, useDisclosure, Drawer, DrawerBody, DrawerHeader, 
-  DrawerOverlay, DrawerContent, DrawerCloseButton, VStack, Badge, Flex, Spacer } from '@chakra-ui/react';
+  DrawerOverlay, DrawerContent, DrawerCloseButton, VStack, Badge, Flex, Spacer, Grid, GridItem } from '@chakra-ui/react';
 import { keyframes } from '@emotion/react';
 import SampleStudentList from './SampleStudentList';
 import { WiDaySunny, WiCloudy, WiRain, WiThunderstorm, WiSnow } from 'react-icons/wi';
@@ -10,6 +10,7 @@ import { useToast } from '@chakra-ui/react';
 import { DownloadIcon, TimeIcon, SettingsIcon, ChevronRightIcon, RepeatIcon, AddIcon, MinusIcon } from '@chakra-ui/icons';
 import { FaFastForward, FaSearchPlus, FaSearchMinus, FaRedo, FaExpandArrowsAlt } from 'react-icons/fa';
 import { getCurrentTime, getJapanTime, setOverrideTime, isTimeOverrideEnabled, getOverrideTime, advanceTimeBy, getJapanTimeISOString } from '../utils/timeManager';
+import AttendanceRanking from './AttendanceRanking';
 
 // 型定義: 学生情報
 interface Student {
@@ -893,39 +894,73 @@ const Tab1Content: React.FC = () => {
         </DrawerContent>
       </Drawer>
 
-      {/* 学生情報を学年別に表示 */}
-      <Box mt={24} ref={gradeBoxesRef}>
-        {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
-          <Box key={grade} mb={10} userSelect="none" position="relative"
+      {/* 2列レイアウトに変更: 左側に学生リスト、右側にランキング */}
+      <Grid 
+        mt={24} 
+        templateColumns={{ base: "1fr", lg: "2fr 1fr" }}
+        gap={6}
+      >
+        {/* 左側：学生情報を学年別に表示 */}
+        <GridItem>
+          <Box ref={gradeBoxesRef}>
+            {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
+              <Box key={grade} mb={10} userSelect="none" position="relative"
+                borderWidth="5px"
+                borderColor="#131113"
+                borderRadius="3xl"
+                px={6}
+                pt={3}
+                pb={1}
+                mt={2}
+                boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
+                color="#131113"
+                bg="white"
+                className="grade-box" // オートリサイズ用のクラス名を追加
+              >
+                <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
+                width="11vw" px={0} position="absolute" top={0} transform="translate(0%, -50%)"
+                textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
+                >
+                  {grade}
+                </Heading>
+                <Box mt={8} mb={4}>
+                  <SampleStudentList 
+                    students={gradeStudents} 
+                    zoomLevel={zoomLevel} 
+                    onAttendanceChange={handleAttendanceChange} // 出退勤変更時のコールバックを渡す
+                  />
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </GridItem>
+
+        {/* 右側：出勤ランキング */}
+        <GridItem>
+          <Box 
             borderWidth="5px"
             borderColor="#131113"
             borderRadius="3xl"
             px={6}
             pt={3}
-            pb={1}
-            mt={2}
-            // ドロップシャドウを設定
+            pb={6}
+            mt={2} /* Added top margin to push it down */
             boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
-            color="#131113"
             bg="white"
-            className="grade-box" // オートリサイズ用のクラス名を追加
+            position="relative"
           >
-              <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
-              width="11vw" px={0} position="absolute" top={0} transform="translate(0%, -50%)"
+            <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
+              width="50%" maxWidth="250px" px={0} position="absolute" top={0} left="27%" transform="translate(-50%, -50%)"
               textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
-              >
-                {grade}
-              </Heading>
-              <Box mt={8} mb={4}>
-                <SampleStudentList 
-                  students={gradeStudents} 
-                  zoomLevel={zoomLevel} 
-                  onAttendanceChange={handleAttendanceChange} // 出退勤変更時のコールバックを渡す
-                />
-              </Box>
+            >
+              ランキング
+            </Heading>
+            <Box mt={8}>
+              <AttendanceRanking maxRanks={3} />
+            </Box>
           </Box>
-        ))}
-      </Box>
+        </GridItem>
+      </Grid>
     </Box>
   );
 };

@@ -670,6 +670,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                           boxShadow: "0 3px 8px rgba(0, 0, 0, 0.2)"
                         }}
                         overflow="visible" // 内容がはみ出ても表示できるように
+                        bg="white" // 頻繁な出勤者は薄紫色の背景
                       >
                         {/* 出勤日数と累計滞在時間表示 - 日数が1以上の場合のみ表示 */}
                         {attendanceDaysMap[student.id] > 0 && (
@@ -703,7 +704,7 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                           overflow="visible"
                           textOverflow="clip"
                           whiteSpace="nowrap" // 改行を許可せず、1行で表示
-                          color="#131113"
+                          // color={isFrequent ? "white" : "black"} // 頻繁な出勤者は白文字
                         >
                           {student.name}
                         </Text>

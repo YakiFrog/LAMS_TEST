@@ -91,3 +91,13 @@ export function getAllStudents(): Student[] {
   const studentsMap = getStudentsMap();
   return Object.values(studentsMap);
 }
+
+/**
+ * 学生IDから学生の学年を取得する
+ * @param studentId 学生ID
+ * @returns 学生の学年（存在しない場合は空文字列）
+ */
+export function getStudentGradeById(studentId: string): string {
+  const student = getStudentById(studentId);
+  return student ? student.grade : '';
+}
