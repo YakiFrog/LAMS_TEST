@@ -4,6 +4,9 @@ import { getStudentNameById, getStudentGradeById } from '../utils/studentsManage
 import { formatStayTime } from '../utils/timeManager';
 import Papa from 'papaparse';
 import { FaTrophy, FaClock } from 'react-icons/fa';
+// アイコン関連のインポートを追加
+import { getIconById } from './IconSelector';
+import { FaUser } from 'react-icons/fa';
 
 // ランキング用データ型
 interface RankingData {
@@ -86,6 +89,74 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
   const [daysRanking, setDaysRanking] = useState<RankingData[]>([]);
   const [timeRanking, setTimeRanking] = useState<RankingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // 学生アイコンを保持するstate
+  const [studentIcons, setStudentIcons] = useState<{[studentId: string]: any}>({});
+
+  // ローカルストレージからアイコン設定を読み込むuseEffect
+  useEffect(() => {
+    const loadIcons = () => {
+      try {
+        const iconsData = localStorage.getItem('studentIcons');
+        if (iconsData) {
+          setStudentIcons(JSON.parse(iconsData));
+        }
+      } catch (error) {
+        console.error('アイコン設定の読み込みエラー:', error);
+      }
+    };
+    
+    // 初回読み込み
+    loadIcons();
+    
+    // localStorageの変更を監視
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'studentIcons') {
+        loadIcons();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // カスタムイベントを使用して同一ウィンドウでの更新を検知
+    const handleCustomEvent = () => {
+      loadIcons();
+    };
+    
+    window.addEventListener('studentIconsUpdated', handleCustomEvent);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('studentIconsUpdated', handleCustomEvent);
+    };
+  }, []);
+
+  // 学生IDからアイコン設定を取得する関数
+  const getStudentIconInfo = (studentId: string): {
+    iconId: string | null,
+    iconColor: string,
+    bgColor: string
+  } => {
+    const iconData = studentIcons[studentId];
+    
+    // データがない場合
+    if (!iconData) return { iconId: null, iconColor: '#131113', bgColor: '#FFFFFF' };
+    
+    // 新形式（オブジェクト）と旧形式（文字列）の両方に対応
+    if (typeof iconData === 'object') {
+      return {
+        iconId: iconData.iconId || null,
+        iconColor: iconData.iconColor || '#131113',
+        bgColor: iconData.bgColor || '#FFFFFF'
+      };
+    } else {
+      // 旧形式の場合はIDのみ返し、デフォルトの色を設定
+      return {
+        iconId: iconData,
+        iconColor: '#131113',
+        bgColor: '#FFFFFF'
+      };
+    }
+  };
 
   useEffect(() => {
     const loadAttendanceData = async () => {
@@ -326,6 +397,11 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         highlight: "rgba(255, 255, 255, 0.5)",
       };
     
+    // 学生のアイコン情報を取得
+    const iconInfo = getStudentIconInfo(item.studentId);
+    const studentIconId = iconInfo.iconId;
+    const StudentIcon = studentIconId ? getIconById(studentIconId) : null;
+
     // 滞在時間の表示をフォーマット
     const formatTimeDisplay = (displayValue: string, value: number) => {
       if (type === '滞在時間') {
@@ -420,6 +496,31 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         }
       }}
     >
+        {/* 学生のアイコンを背景として表示 */}
+        {StudentIcon && (
+          <Box
+            position="absolute"
+            top="0"
+            left="50%"
+            right="0"
+            bottom="0"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            opacity={0.15} // うっすらと表示
+            zIndex={0} // 背景レイヤー
+            pointerEvents="none" // クリックイベントを透過
+            overflow="hidden"
+            borderRadius="inherit"
+          >
+            {React.createElement(StudentIcon, {
+              size: 100, // サイズを大きく設定
+              color: iconInfo.iconColor,
+              style: { opacity: 1 } // さらに透明度を調整
+            })}
+          </Box>
+        )}
+
         <Box
           position="absolute"
           top={-3}
