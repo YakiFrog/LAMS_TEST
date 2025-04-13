@@ -156,11 +156,19 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
             fontSize: '2.0em', 
             color: '#FF0000',
             fontWeight: 'bold', 
-            marginLeft: '0.1em', 
+            marginLeft: '0.2em', 
             marginRight: '0.1em',
             verticalAlign: '-0.1em',
-          }}>{daysRemaining}</span>
-          日
+            top: '-0.04em',
+            position: 'relative',
+          }}>{daysRemaining}<span 
+            style={{ 
+              fontSize: '0.7em',
+              fontWeight: '900',
+              top: '-0.06em',
+              position: 'relative',
+            }}
+          >日</span></span>
         </>
       );
     }
@@ -175,7 +183,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
       bg="#131113"
       color="white"
       boxShadow="0 6px 1px rgba(0, 0, 0, 0.4)"
-      minWidth="55vw"
+      minWidth="60vw"
       maxWidth="auto"
       whiteSpace="nowrap" // 改行を防止
       textAlign="center"
@@ -245,7 +253,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
                 </Badge>
                 <Text fontSize="xl" fontWeight="bold" noOfLines={1} maxW="150px" mr={10} fontFamily="'Roboto', sans-serif"> {/* 幅を制限 */}
                   {currentEvent.name}
-                  {events === sampleEvents && <span style={{ fontSize: '0.7em', color: '#FF6B6B', marginLeft: '0.2em', fontFamily: "'Roboto', sans-serif" }}>(サンプル)</span>}
+                  {events === sampleEvents && <span style={{ fontSize: '0.8em', color: '#FF6B6B', marginLeft: '0.2em', fontFamily: "'Roboto', sans-serif" }}>(サンプル)</span>}
                 </Text>
               </Flex>
             </Box>
@@ -258,7 +266,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
               fontWeight="extrabold"
               animation={isAnimating ? `${fadeOut} 0.5s forwards` : `${fadeIn} 0.5s`}
               lineHeight="1"
-              textAlign="right"
+              textAlign="right" 
             >
               {renderRemainingDays(currentEvent.daysRemaining)}
               <span style={{ 
