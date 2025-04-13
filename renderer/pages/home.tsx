@@ -162,7 +162,7 @@ export default function HomePage() {
           >
             {`${pkg.versionDescription}`}
           </Box>
-          試作版
+          超試作版
           <Box
             fontSize="xs"
             fontWeight="normal"

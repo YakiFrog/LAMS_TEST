@@ -2,8 +2,8 @@
   "private": true,
   "name": "lams-test",
   "description": "My application description",
-  "version": "0.13.3",
-  "versionDescription": "家での作業時間は長いです",
+  "version": "0.17.0",
+  "versionDescription": "DESIGNED BY KOTANI RYOTA",
   "author": "Ketan Patel <ktan.p.patel@gmail.com>",
   "main": "app/background.js",
   "scripts": {
