@@ -78,6 +78,9 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
   // トロフィーアイコンカラー
   const trophyColors = theme.customTheme?.trophyColors || ["#FFD700", "#C0C0C0", "#CD7F32"];
 
+  // 順位バッジ用の明るい色を定義
+  const rankBadgeColors = ["#FFD700", "#E0E0E0", "#FF9E5E", "#90CDF4", "#FFFFFF"];
+
   // 学年バッジカラー
   const gradeBadgeColors = theme.customTheme?.gradeBadgeColors || {
     '教員': 'purple',
@@ -490,15 +493,33 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         left: 0,
         width: "100%",
         height: "100%",
-        background: `linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 45%, ${colorScheme.highlight} 60%, transparent 0%), 
-        linear-gradient(45deg, transparent 45%, ${colorScheme.highlight} 70%, ${colorScheme.highlight} 73%, transparent 0%)`,
-        opacity: 0.3,
+        background: 
+        `linear-gradient(45deg, transparent 65%, ${colorScheme.highlight} 65%, ${colorScheme.highlight} 75%, transparent 0%), 
+        linear-gradient(45deg, transparent 65%, ${colorScheme.highlight} 82%, ${colorScheme.highlight} 85%, transparent 0%)`,
+        opacity: 0.8,
         pointerEvents: "none",
         zIndex: 0,
         overflow: "hidden",
         borderRadius: "inherit", // これを保持して内部要素も同じ曲率を継承
         backgroundSize: "300% 100%",
+        mixBlendMode: "overlay",
         animation: "shimmerEffect 6s ease-in-out infinite",
+      }}
+      // 左側面と上面に固定のハイライトをよりシャープに設定
+      _after={{
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        opacity: 0.9,
+        pointerEvents: "none",
+        zIndex: 0,
+        overflow: "hidden",
+        backgroundSize: "300% 100%",
+        borderRadius: "inherit",
+        mixBlendMode: "screen",
       }}
       sx={{
         "@keyframes shimmerEffect": {
@@ -517,7 +538,12 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
           "60%": {
             opacity: 0.3,
           }
-        }
+        },
+        "&:hover": {
+          boxShadow: `0 8px 20px ${colorScheme.shadowColor}, 0 0 0 2px ${colorScheme.border}`,
+          transform: "scale(1.05)",
+          transition: "all 0.3s",
+        },
       }}
     >
         {/* 学生のアイコンを背景として表示 */}
@@ -548,7 +574,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         <Box
           position="absolute"
           top={-3}
-          left={4}
+          left={3}
           borderRadius="full"
           bg={theme.colors.neutral[900] || "#131113"}
           p="2px"
@@ -556,13 +582,14 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
           zIndex={2}
         >
           <Badge
-            fontSize="lg"
+            fontSize="xl"
             px={4}
             py={1}
             borderRadius="full"
             bg="transparent"
-            color={index < 3 ? trophyColors[index] : "white"}
+            color={rankBadgeColors[index] || "#FFFFFF"} // 順位に応じた明るい色を使用
             fontWeight="bold"
+            textShadow="0 1px 2px rgba(0,0,0,0.7)" // テキストに影を追加して読みやすく
           >
             {index + 1}位
           </Badge>

@@ -634,6 +634,7 @@ const Tab1Content: React.FC = () => {
         left="50%"
         transform="translateX(-50%)"
         zIndex={1000}
+        letterSpacing={"0.05em"}
       >
         <CountdownPanel 
           transitionInterval={8000}
