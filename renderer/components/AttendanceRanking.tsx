@@ -396,8 +396,8 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         bg: "linear-gradient(135deg, #E2E8F0 10%, #CBD5E0 40%, #E2E8F0 60%, #EDF2F7 100%)", 
         text: "#131113", 
         border: "#CBD5E0", 
-        shadowColor: "rgba(160, 174, 192, 0.4)",
-        highlight: "rgba(255, 255, 255, 0.5)",
+        shadowColor: "rgba(160, 174, 192, 0.9)",
+        highlight: "rgba(255, 255, 255, 0.9)",
       };
     
     // 学生のアイコン情報を取得
@@ -408,21 +408,26 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
     // 滞在時間の表示をフォーマット
     const formatTimeDisplay = (displayValue: string, value: number) => {
       const textStyle = {
-        fontSize: '1.8em',  // Increased from 1.5em to 1.8em
+        fontSize: 40,  // Increased from 1.5em to 1.8em
         fontStyle: 'italic',
+        fontWeight: 900,
+        fontFamiliy: "'Roboto', sans-serif", // フォントファミリーを指定
         color: 'white',
         marginRight: '5px',
         textShadow: '2.3px 2.3px 0 #000, -2.3px -2.3px 0 #000, 2.3px -2.3px 0 #000, -2.3px 2.3px 0 #000, 0 2.3px 0 #000, 0 -2.3px 0 #000, 2.3px 0 0 #000, -2.3px 0 0 #000',
         display: 'inline-block',  // Ensures the text stays inline while having block properties
         lineHeight: '1',  // Keeps the line height tight
-        verticalAlign: 'baseline'  // Aligns with surrounding text
+        verticalAlign: 'baseline',  // Aligns with surrounding text
       };
       
       const unitStyle = {
         color: 'white',
         fontStyle: 'italic',
+        fontWeight: 900,
+        fontFamily: "'Roboto', sans-serif", // フォントファミリーを指定
         textShadow: '2.3px 2.3px 0 #000, -2.3px -2.3px 0 #000, 2.3px -2.3px 0 #000, -2.3px 2.3px 0 #000, 0 2.3px 0 #000, 0 -2.3px 0 #000, 2.3px 0 0 #000, -2.3px 0 0 #000',
-        fontSize: '1.1em',
+        lineHeight: '1',  // Keeps the line height tight
+        fontSize: 25,
         marginRight: '8px'
       };
 
@@ -471,7 +476,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
     return (
     <Box 
       key={item.studentId} 
-      mb={4}
+      mb={5}
       p={2} 
       borderWidth="5px" 
       borderColor={colorScheme.border}
@@ -481,7 +486,10 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
       borderBottomLeftRadius="xl" // 左下のコーナーを丸くする
       bgImage={colorScheme.bg}
       color={colorScheme.text}
-      boxShadow={`0 4px 12px ${colorScheme.shadowColor}, 0 0 0 2px ${colorScheme.border}`}
+      boxShadow={`
+        0 6px 1px ${colorScheme.shadowColor}, 
+        0 6px 1px rgba(0, 0, 0, 0.7),
+        0 0px 0 2px ${colorScheme.border}`}
       position="relative"
       userSelect="none"
       transition="all 0.3s"
@@ -494,9 +502,9 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
         width: "100%",
         height: "100%",
         background: 
-        `linear-gradient(45deg, transparent 65%, ${colorScheme.highlight} 65%, ${colorScheme.highlight} 75%, transparent 0%), 
-        linear-gradient(45deg, transparent 65%, ${colorScheme.highlight} 82%, ${colorScheme.highlight} 85%, transparent 0%)`,
-        opacity: 0.8,
+        `linear-gradient(45deg, transparent 63%, ${colorScheme.highlight} 65%, ${colorScheme.highlight} 70%, transparent 0%), 
+        linear-gradient(45deg, transparent 70%, ${colorScheme.highlight} 75%, ${colorScheme.highlight} 75%, transparent 0%)`,
+        opacity: 0.9,
         pointerEvents: "none",
         zIndex: 0,
         overflow: "hidden",
@@ -524,23 +532,28 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
       sx={{
         "@keyframes shimmerEffect": {
           "0%, 100%": {
-            backgroundPosition: "100% 0%",
-            opacity: 0.5,
+            backgroundPosition: "120% 0%",
+            opacity: 0.9,
           },
           "30%": {
-            backgroundPosition: "70% 0%",
-            opacity: 0.5,
+            backgroundPosition: "75% 0%",
+            opacity: 0.6,
           },
           "45%": {
             backgroundPosition: "-100% 0%",
-            opacity: 0.3,
+            opacity: 0.6,
           },
-          "60%": {
-            opacity: 0.3,
+          "55%": {
+            opacity: 0.6,
           }
         },
         "&:hover": {
-          boxShadow: `0 8px 20px ${colorScheme.shadowColor}, 0 0 0 2px ${colorScheme.border}`,
+          boxShadow: `
+            0 6px 1px ${colorScheme.shadowColor},
+            0 6px 1px rgba(0, 0, 0, 0.7),
+            0 0px 0 2px ${colorScheme.border},
+            0 0px 0 4px ${colorScheme.highlight}
+          `,
           transform: "scale(1.05)",
           transition: "all 0.3s",
         },
@@ -590,21 +603,23 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
             color={rankBadgeColors[index] || "#FFFFFF"} // 順位に応じた明るい色を使用
             fontWeight="bold"
             textShadow="0 1px 2px rgba(0,0,0,0.7)" // テキストに影を追加して読みやすく
+            fontFamily="'Roboto', sans-serif" 
           >
             {index + 1}位
           </Badge>
         </Box>
 
         <Flex align="center" position="relative" zIndex={1} mt={1} ml={9}>
-          <Box mr={4} ml={12}>
+          <Box mr={4} ml={12} >
             <Badge colorScheme={gradeBadgeColors[item.grade]} fontSize="md" px={2} py={1} borderRadius="md">
               {item.grade}
             </Badge>
           </Box>
           
           <Text 
-            fontWeight="bold" 
-            fontSize="2xl" 
+            fontWeight="900" 
+            fontFamily="'Roboto', sans-serif" // フォントファミリーを指定
+            fontSize="30" 
             fontStyle="italic"
             letterSpacing="0.1em"
             color="white"
@@ -635,14 +650,14 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
     position: "relative" as const,
     mb: 5,
     pb: 2,
-    borderBottom: "6px solid #131113",
+    borderBottom: "7.5px solid #131113",
     padding: "8px 16px",
   };
   
   // ヘッディングのテキストスタイル
   const headingTextStyle = {
     fontWeight: 900,
-    fontFamily: "Impact, 'Arial Black', sans-serif",
+    fontFamily: "'RocknRoll One', 'Arial Black', sans-serif",
     letterSpacing: "0.05em",
     textShadow: "0 1px 0 rgba(0,0,0,0.2)"
   };

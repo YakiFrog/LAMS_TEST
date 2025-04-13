@@ -677,7 +677,7 @@ const Tab1Content: React.FC = () => {
         display="flex"
         alignItems="center"
         justifyContent="center"
-        boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
+        boxShadow="0 6px 1px rgba(0, 0, 0, 0.4)"
       >
         <HStack spacing={2}>
           <Tooltip label="ズームアウト (-10%)">
@@ -841,29 +841,32 @@ const Tab1Content: React.FC = () => {
       {/* 2列レイアウトに変更: 左側に学生リスト、右側にランキング */}
       <Grid 
         mt={24} 
-        templateColumns={{ base: "1fr", lg: "2.1fr 1fr" }}
+        templateColumns={{ base: "1fr", lg: "2.0fr 1fr" }}
         gap={6}
       >
         {/* 左側：学生情報を学年別に表示 */}
         <GridItem>
           <Box ref={gradeBoxesRef}>
             {Object.entries(studentsByGrade).map(([grade, gradeStudents]) => (
-              <Box key={grade} mb={10} userSelect="none" position="relative"
-                borderWidth="5px"
+              <Box key={grade} mb={"50px"} userSelect="none" position="relative"
+                borderWidth="7.5px"
                 borderColor="#131113"
                 borderRadius="3xl"
                 px={6}
                 pt={5}
                 pb={0}
                 mt={2}
-                boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
+                boxShadow="0 8px 1px rgba(0, 0, 0, 0.6)"
                 color="#131113"
                 bg="white"
                 className="grade-box" // オートリサイズ用のクラス名を追加
               >
                 <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full"
                 width="11vw" px={0} position="absolute" top={0} transform="translate(0%, -50%)"
-                textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
+                textAlign="center" userSelect="none" letterSpacing="wider" 
+                // boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
+                boxShadow="0 6px 1px rgba(0, 0, 0, 0.2)"
+                fontFamily="Roboto"
                 >
                   {grade}
                 </Heading>
@@ -882,20 +885,22 @@ const Tab1Content: React.FC = () => {
         {/* 右側：出勤ランキング */}
         <GridItem>
           <Box 
-            borderWidth="5px"
+            borderWidth="7.5px"
             borderColor="#131113"
             borderRadius="3xl"
             px={6}
             pt={3}
             pb={6}
             mt={2} /* Added top margin to push it down */
-            boxShadow="0 3px 10px rgba(0, 0, 0, 0.6)"
+            boxShadow="0 8px 1px rgba(0, 0, 0, 0.6)"
             bg="white"
             position="relative"
           >
             <Heading as="h2" size="xl" color="white" bg="#131113" p={2} borderRadius="full" px={"10%"}
               width="auto" position="absolute" top={0} left="30%" transform="translate(-50%, -50%)"
-              textAlign="center" userSelect="none" letterSpacing="wider" boxShadow="0 3px 10px rgba(0, 0, 0, 0.4)"
+              textAlign="center" userSelect="none" letterSpacing="wider" 
+              boxShadow="0 6px 1px rgba(0, 0, 0, 0.2)"
+              fontFamily="Roboto"
             >
               ランキング
             </Heading>

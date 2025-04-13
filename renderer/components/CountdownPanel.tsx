@@ -174,7 +174,7 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
       borderRadius="full"
       bg="#131113"
       color="white"
-      boxShadow="0 2px 5px rgba(0, 0, 0, 0.8)"
+      boxShadow="0 6px 1px rgba(0, 0, 0, 0.4)"
       minWidth="55vw"
       maxWidth="auto"
       whiteSpace="nowrap" // 改行を防止
@@ -207,7 +207,9 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
       <Flex width="100%" flexWrap="nowrap" p={2}>
         {/* 時計部分 (左側) */}
         <Box flex="0 1 auto" pl={10} pr={5}>
-          <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" letterSpacing="-0.02em">
+          <Text fontSize="3xl" fontWeight="bold" color="white" userSelect="none" 
+          letterSpacing="0.02em" fontFamily="'Roboto', sans-serif"
+          >
             {currentTime.toLocaleDateString('ja-JP', {
               year: 'numeric',
               month: 'long',
@@ -241,9 +243,9 @@ const CountdownPanel: React.FC<CountdownPanelProps> = ({
                 >
                   {currentEvent.target}
                 </Badge>
-                <Text fontSize="xl" fontWeight="bold" noOfLines={1} maxW="150px" mr={10}> {/* 幅を制限 */}
+                <Text fontSize="xl" fontWeight="bold" noOfLines={1} maxW="150px" mr={10} fontFamily="'Roboto', sans-serif"> {/* 幅を制限 */}
                   {currentEvent.name}
-                  {events === sampleEvents && <span style={{ fontSize: '0.7em', color: '#FF6B6B', marginLeft: '0.2em' }}>(サンプル)</span>}
+                  {events === sampleEvents && <span style={{ fontSize: '0.7em', color: '#FF6B6B', marginLeft: '0.2em', fontFamily: "'Roboto', sans-serif" }}>(サンプル)</span>}
                 </Text>
               </Flex>
             </Box>

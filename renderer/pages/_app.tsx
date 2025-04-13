@@ -3,6 +3,7 @@ import { useState, useEffect, createContext } from 'react'
 import theme from '../lib/theme'
 import { AppProps } from 'next/app'
 import { setupDefaultSettings } from '../utils/setupDefaults'
+import '../styles/fonts.css'; // グローバルCSSをここにインポート
 
 // クライアント状態を共有するためのコンテキスト作成
 export const ClientContext = createContext(false);

@@ -42,7 +42,7 @@ const BASE_WIDTH = 150;  // 基本幅
 const BASE_HEIGHT = 60;  // 基本高さ
 const CHAR_WIDTH = 22;   // 1文字あたりの幅（ピクセル）
 const MAX_PANELS_PER_ROW = 5; // 1行あたりの最大パネル数
-const PANEL_GAP = 45; // パネル間の固定間隔（px）を30pxから45pxに増加
+const PANEL_GAP = 2; // パネル間の固定間隔（px）を30pxから45pxに増加
 const PANEL_GAP_VERTICAL = 8; // パネル間の垂直方向の間隔（px）
 
 const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAttendanceChange }) => {
@@ -666,17 +666,23 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                   bg={theme.colors.neutral[900] || "black"}
                   color="white"
                   fontSize="xl" // increased from sm
-                  px={5}
-                  pl={7}
+                  pl={"40px"}
                   py={1}
+                  pt={2.5}
+                  pr={7}
                   letterSpacing="3px" // Add space between letters
-                  borderTopLeftRadius="3xl" // Even more rounded top-left corner
                   borderRadius="3xl" // Add general roundness to all corners
+                  borderTopLeftRadius="60" // Even more rounded top-left corner
                   borderTopRightRadius="md"
                   borderBottomLeftRadius="md" 
                   borderBottomRightRadius="xl"
+                  fontFamily="Roboto, sans-serif"
+                  fontWeight="900"
+                  fontStyle="italic"
                 >
-                  {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '5px' }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.2em', letterSpacing: '5px' }}>日</span>
+                  {grade === '教員' ? '教員' : grade}の平均出勤日数: <span style={{ fontSize: '2.0em', letterSpacing: '0px', fontStyle: 'italic'
+
+                  }}>{averageAttendanceByGrade[grade] || 0}</span><span style={{ fontSize: '1.4em', letterSpacing: '0px' , fontStyle: 'italic', marginLeft: '10px'}}>日</span>
                 </Badge>
               <Wrap 
                 justify="flex-start" 
@@ -719,7 +725,8 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                     <WrapItem 
                       key={student.id} 
                       maxWidth={maxPanelWidth}
-                      margin="0" // マージンを0に設定し、親のgapプロパティに依存
+                      margin="0" // WrapItemのデフォルトのマージンをリセット
+                      marginRight={`${PANEL_GAP}px`} // 右側のスペースを追加
                       marginBottom={`${PANEL_GAP_VERTICAL}px`} // 垂直方向のスペースを追加
                       // 出勤日数が多いパネルの順序を後ろに（下段に表示されやすく）
                       order={attendanceDays > 0 ? -attendanceDays : 0}
@@ -727,12 +734,12 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                       <Box
                         borderWidth={
                           attendanceStates[student.id]?.isAttending
-                            ? "4px"
+                            ? "6px"
                             : attendanceStates[student.id]?.leavingTime
-                            ? "4px"
-                            : isFrequent ? "3px" : "1px" // 頻繁な出勤者は太めの枠線
+                            ? "6px"
+                            : isFrequent ? "5px" : "4px" // 頻繁な出勤者は太めの枠線
                         }
-                        borderRadius="3xl"
+                        borderRadius="full"
                         py={2}
                         px={`${paddingHorizontal}px`}
                         width={width}
@@ -744,12 +751,12 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         position="relative"
                         paddingBottom={attendanceStates[student.id]?.isAttending || 
                                       (attendanceStates[student.id]?.leavingTime && !attendanceStates[student.id]?.isAttending) 
-                                      ? "10px" : "0px"}
+                                      ? "10px" : "5px"}
                         borderColor={
                           attendanceStates[student.id]?.isAttending
                             ? theme.colors.success[500] || "green.400"
                             : attendanceStates[student.id]?.leavingTime
-                            ? theme.colors.secondary[500] || "red.400"
+                            ? theme.colors.secondary[400] || "red.400"
                             : isFrequent ? theme.colors.accent[300] || "purple.300" : "gray.200"
                         }
                         display="flex"
@@ -757,15 +764,14 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         justifyContent="center"
                         boxShadow={
                           attendanceStates[student.id]?.isAttending
-                            ? `0 2px 4px ${theme.colors.success[300]}`
+                            ? `0 6px 1px ${theme.colors.success[300]}`
                             : attendanceStates[student.id]?.leavingTime
-                            ? `0 2px 4px ${theme.colors.secondary[300]}`
+                            ? `0 6px 1px ${theme.colors.secondary[200]}`
                             : isFrequent ? `0 3px 5px rgba(128, 90, 213, 0.3)` : "0 2px 2px rgba(0, 0, 0, 0.3)"
                         }
                         transition="all 0.3s ease"
                         _hover={{
-                          transform: "translateY(-3px)",
-                          boxShadow: "0 3px 8px rgba(0, 0, 0, 0.2)"
+                          transform: "translateY(-6px)",
                         }}
                         overflow="visible" // 内容がはみ出ても表示できるように
                         bg="white" // 頻繁な出勤者は薄紫色の背景
@@ -774,9 +780,10 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                         {/* 学生のアイコンを背景として表示 */}
                         {StudentIcon && (
                           <Box
+                            overflow="hidden"
                             position="absolute"
-                            top="35%"
-                            left="-65%"
+                            top="30%"
+                            left="-60%"
                             right="0"
                             bottom="0"
                             display="flex"
@@ -785,7 +792,6 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             opacity={0.2} // うっすらと表示
                             zIndex={0} // 背景レイヤー
                             pointerEvents="none" // クリックイベントを透過
-                            overflow="hidden"
                             borderRadius="inherit"
                           >
                             {React.createElement(StudentIcon, {
@@ -803,14 +809,16 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             top="-11px"
                             left="10px"
                             colorScheme={isFrequent ? gradeBadgeColors[student.grade] : "blue"} // 学年に合わせた色
-                            fontSize={`${0.7 * scale}rem`}
+                            fontSize={`${0.6 * scale}rem`}
                             borderRadius="full"
                             px={2.5}
                             py={0.5}
-                            boxShadow="0 1px 2px rgba(0,0,0,0.2)"
+                            boxShadow="0 1px 1px rgba(0,0,0,0.4)"
                             display="flex"
                             alignItems="center"
                             zIndex={2} // バッジを名前より前面に
+                            fontFamily="'Roboto', sans-serif"
+                            fontWeight="900"
                           >
                             <span>{attendanceDaysMap[student.id]}日</span>
                             {totalStayTime > 0 && (
@@ -828,8 +836,9 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                           overflow="visible"
                           textOverflow="clip"
                           whiteSpace="nowrap" // 改行を許可せず、1行で表示
-                          fontWeight="black"
+                          fontWeight="bold" // フォントの太さを指定
                           letterSpacing="0.05em" // Adds space between characters
+                          fontFamily="'M Plus 1p', sans-serif" // フォントファミリーを指定
                           zIndex={1} // テキストをアイコンの上に表示
                           position="relative" // スタッキングコンテキスト作成
                         >
@@ -843,12 +852,14 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                             position="absolute"
                             bottom="-13px"
                             right="-5px"
-                            fontSize={`${0.8 * scale}rem`}
+                            fontSize={`${0.75 * scale}rem`}
                             zIndex={2}
                             borderRadius="full"
                             px={2}
                             py={1}
-                            boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
+                            boxShadow="0 1px 1px rgba(0,0,0,0.4)"
+                            fontFamily="'Roboto', sans-serif"
+                            fontWeight="900"
                           >
                             {attendanceStates[student.id]?.attendanceTime ? 
                               `${new Date(attendanceStates[student.id].attendanceTime!).getHours()}:${String(new Date(attendanceStates[student.id].attendanceTime!).getMinutes()).padStart(2, '0')} 出勤` : 
@@ -865,13 +876,15 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                               position="absolute"
                               bottom="-13px"
                               right="-5px"
-                              fontSize={`${0.8 * scale}rem`}
+                              fontSize={`${0.75 * scale}rem`}
                               zIndex={2}
                               borderRadius="full"
                               px={2}
                               py={1}
-                                boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
-                                animation={`${fadeInOut} 10s infinite`}
+                              boxShadow="0 1px 1px rgba(0,0,0,0.4)"
+                              animation={`${fadeInOut} 10s infinite`}
+                              fontFamily="'Roboto', sans-serif"
+                              fontWeight="900"
                               >
                               {attendanceStates[student.id]?.leavingTime ? 
                                 `${new Date(attendanceStates[student.id].leavingTime!).getHours()}:${String(new Date(attendanceStates[student.id].leavingTime!).getMinutes()).padStart(2, '0')} 退勤` : 
@@ -892,6 +905,8 @@ const SampleStudentList: React.FC<Props> = ({ students, zoomLevel = 100, onAtten
                                 py={1}
                                 boxShadow={"0px 0px 3px rgb(109, 109, 109)"}
                                 animation={`${fadeOutIn} 10s infinite`}
+                                fontFamily="'Roboto', sans-serif"
+                                fontWeight="900"
                               >
                                 {formatStayTime(attendanceStates[student.id].totalStayTime)}
                               </Badge>
