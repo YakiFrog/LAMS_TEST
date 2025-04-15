@@ -29,32 +29,39 @@ const isElectronAvailable = (): boolean => {
 };
 
 /**
- * 出勤データの日付を確認し、エクスポートすべきデータと現在保持すべきデータを分離する
- * @param attendanceStates 全ての出勤データ
- * @returns {expiredData, currentData} 期限切れのデータと現在のデータに分けたオブジェクト
+ * 出勤データを現在のデータと期限切れデータに分離する
+ * @param attendanceStates 出勤状態オブジェクト
+ * @returns 期限切れデータと現在のデータに分離されたオブジェクト
  */
 export function separateAttendanceData(attendanceStates: { [studentId: string]: AttendanceState }): {
   expiredData: { [studentId: string]: AttendanceState };
   currentData: { [studentId: string]: AttendanceState };
 } {
-  const today = resetTime(getCurrentTime());
   const expiredData: { [studentId: string]: AttendanceState } = {};
   const currentData: { [studentId: string]: AttendanceState } = {};
-
+  
+  // 現在の日付を取得（時刻情報をリセット）
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   Object.entries(attendanceStates).forEach(([studentId, state]) => {
     let isExpired = false;
-
-    // 出勤時刻を確認
+    
+    // 出勤日が今日でなければ期限切れ
     if (state.attendanceTime) {
-      const attendanceDate = resetTime(new Date(state.attendanceTime));
+      const attendanceDate = new Date(state.attendanceTime);
+      attendanceDate.setHours(0, 0, 0, 0);
+      
       if (attendanceDate.getTime() !== today.getTime()) {
         isExpired = true;
       }
     }
-
-    // 退勤時刻を確認
+    
+    // 退勤日が今日でなければ期限切れ
     if (state.leavingTime) {
-      const leavingDate = resetTime(new Date(state.leavingTime));
+      const leavingDate = new Date(state.leavingTime);
+      leavingDate.setHours(0, 0, 0, 0);
+      
       if (leavingDate.getTime() !== today.getTime()) {
         isExpired = true;
       }
