@@ -902,7 +902,7 @@ const Tab1Content: React.FC = () => {
               boxShadow="0 6px 1px rgba(0, 0, 0, 0.2)"
               fontFamily="Roboto"
             >
-              ランキング
+              常連さん
             </Heading>
             <Box mt={8}>
               <AttendanceRanking maxRanks={4} />

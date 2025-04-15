@@ -605,7 +605,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
             textShadow="0 1px 2px rgba(0,0,0,0.7)" // テキストに影を追加して読みやすく
             fontFamily="'Roboto', sans-serif" 
           >
-            {index + 1}位
+            ★{index + 1}
           </Badge>
         </Box>
 
@@ -683,7 +683,8 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
               <Box {...iconCircleStyle}>
                 <FaTrophy color="#FFD700" size="1.5em" />
               </Box>
-              <Heading size="lg" ml={3} color="#131113" {...headingTextStyle}>出勤日数ランキング</Heading>
+              <Heading size="lg" ml={3} color="#131113" {...headingTextStyle}>よく来る人たち
+              </Heading>
             </Flex>
           </Box>
           {daysRanking.length > 0 ? (
@@ -708,7 +709,7 @@ const AttendanceRanking: React.FC<AttendanceRankingProps> = ({ maxRanks = 5 }) =
               <Box {...iconCircleStyle}>
                 <FaClock color="#3182CE" size="1.5em" />
               </Box>
-              <Heading size="lg" ml={3} color="#131113" {...headingTextStyle}>滞在時間ランキング</Heading>
+              <Heading size="lg" ml={3} color="#131113" {...headingTextStyle}>よく居る人たち</Heading>
             </Flex>
           </Box>
           {timeRanking.length > 0 ? (
