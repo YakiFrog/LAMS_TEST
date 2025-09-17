@@ -12,7 +12,10 @@ let useOverrideTime: boolean = false;
  * @returns 現在時刻
  */
 export function getCurrentTime(): Date {
-  return useOverrideTime && currentTimeOverride ? new Date(currentTimeOverride) : new Date();
+  if (useOverrideTime && currentTimeOverride) {
+    return new Date(currentTimeOverride);
+  }
+  return new Date();
 }
 
 /**
@@ -20,12 +23,9 @@ export function getCurrentTime(): Date {
  * @returns 日本時間
  */
 export function getJapanTime(): Date {
-  if (useOverrideTime && currentTimeOverride) {
-    return new Date(currentTimeOverride);
-  }
-  
-  const now = new Date();
-  return new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
+  const baseTime = getCurrentTime();
+  const utc = baseTime.getTime() + baseTime.getTimezoneOffset() * 60000;
+  return new Date(utc + 9 * 60 * 60000);
 }
 
 /**
@@ -34,12 +34,15 @@ export function getJapanTime(): Date {
  * @returns 日本時間の文字列（YYYY-MM-DDThh:mm形式）
  */
 export function getJapanTimeISOString(): string {
-  const now = getJapanTime();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
+  // 日本時間を取得
+  const japanTime = getJapanTime();
+  
+  // YYYY-MM-DDThh:mm 形式に整形
+  const year = japanTime.getFullYear();
+  const month = String(japanTime.getMonth() + 1).padStart(2, '0');
+  const day = String(japanTime.getDate()).padStart(2, '0');
+  const hours = String(japanTime.getHours()).padStart(2, '0');
+  const minutes = String(japanTime.getMinutes()).padStart(2, '0');
   
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
@@ -60,27 +63,29 @@ export function resetTime(date: Date): Date {
  * @param dateTime 設定する日時
  */
 export function setOverrideTime(dateTime: Date | null): void {
-  if (dateTime === null) {
-    useOverrideTime = false;
-    currentTimeOverride = null;
-    
-    if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined') {
+    if (dateTime) {
+      // 時間を上書き
+      currentTimeOverride = dateTime;
+      useOverrideTime = true;
+      // ローカルストレージに保存
+      localStorage.setItem('timeOverride', dateTime.toISOString());
+      localStorage.setItem('useTimeOverride', 'true');
+    } else {
+      // 上書きを解除
+      currentTimeOverride = null;
+      useOverrideTime = false;
+      // ローカルストレージから削除
       localStorage.removeItem('timeOverride');
       localStorage.removeItem('useTimeOverride');
     }
-    console.log('[TimeManager] 時間操作モードを無効化しました');
-    return;
   }
   
-  useOverrideTime = true;
-  currentTimeOverride = new Date(dateTime);
-  
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('timeOverride', currentTimeOverride.toISOString());
-    localStorage.setItem('useTimeOverride', 'true');
-  }
-  
-  console.log(`[TimeManager] 時間を ${currentTimeOverride.toLocaleString()} に設定しました`);
+  console.log(
+    useOverrideTime 
+      ? `[TimeManager] 時間をオーバーライド: ${currentTimeOverride?.toLocaleString()}` 
+      : '[TimeManager] 実際の時間を使用'
+  );
 }
 
 /**
@@ -105,18 +110,24 @@ export function getOverrideTime(): Date | null {
  */
 export function advanceTimeBy(minutes: number): void {
   if (!useOverrideTime || !currentTimeOverride) {
+    // オーバーライドされていない場合は現在時刻を基点にする
     currentTimeOverride = new Date();
     useOverrideTime = true;
   }
   
+  // 変更前の時刻を記録
   const previousTime = new Date(currentTimeOverride);
+  
+  // 時間を進める
   currentTimeOverride = new Date(currentTimeOverride.getTime() + minutes * 60000);
   
+  // ローカルストレージに保存
   if (typeof window !== 'undefined') {
     localStorage.setItem('timeOverride', currentTimeOverride.toISOString());
     localStorage.setItem('useTimeOverride', 'true');
   }
   
+  // より詳細なログ出力
   console.log(
     `[TimeManager] 時間を ${minutes} 分進めました: ` +
     `${previousTime.toLocaleString()} → ${currentTimeOverride.toLocaleString()}`
@@ -148,6 +159,7 @@ export function loadSavedTimeOverride(): void {
 
 // 初期化: モジュールがロードされたときに保存された設定を読み込む
 if (typeof window !== 'undefined') {
+  // クライアントサイドでのみ実行
   loadSavedTimeOverride();
 }
 
@@ -158,11 +170,9 @@ if (typeof window !== 'undefined') {
  * @returns 同じ日ならtrue、異なる日ならfalse
  */
 export function isSameDay(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
+  const d1 = resetTime(new Date(date1));
+  const d2 = resetTime(new Date(date2));
+  return d1.getTime() === d2.getTime();
 }
 
 /**
@@ -222,6 +232,7 @@ export function isAfter2230(date: Date): boolean {
  */
 export function disableTextSelection(): void {
   if (typeof window !== 'undefined') {
+    // CSSルールを動的に追加
     const style = document.createElement('style');
     style.innerHTML = `
       * {
@@ -239,6 +250,7 @@ export function disableTextSelection(): void {
     `;
     document.head.appendChild(style);
     
+    // マウスイベントでのテキスト選択を防止
     document.addEventListener('selectstart', function(e) {
       const target = e.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' || 
